@@ -5,7 +5,7 @@ on:
     - cron: '*/10 * * * *'   # every 10 minutes
   workflow_dispatch:           # manual trigger / webhook trigger from app
 
-# Minimal GITHUB_TOKEN permissions — this job only reads the repo
+# Minimal GITHUB_TOKEN permissions - this job only reads the repo
 permissions:
   contents: read
 
@@ -26,23 +26,26 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        # node-fetch removed — Node 20 has native fetch; @aws-sdk/client-s3 only
+        # node-fetch removed - Node 20 has native fetch; @aws-sdk/client-s3 only
         run: npm install --omit=dev
 
-      - name: Cache FFmpeg binary
-        id: cache-ffmpeg
-        uses: actions/cache@v4
-        with:
-          path: /usr/local/bin/ffmpeg
-          key: ffmpeg-static-amd64-v1
-
-      - name: Install FFmpeg (static binary, skip if cached)
-        if: steps.cache-ffmpeg.outputs.cache-hit != 'true'
+      # Use system FFmpeg (pre-installed on ubuntu-latest) instead of downloading static binary
+      - name: Verify FFmpeg availability
+        id: ffmpeg_check
         run: |
-          wget -q https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz
-          tar -xf ffmpeg-release-amd64-static.tar.xz
-          sudo mv ffmpeg-*-static/ffmpeg /usr/local/bin/ffmpeg
-          rm -rf ffmpeg-*-static ffmpeg-release-amd64-static.tar.xz
+          if command -v ffmpeg >/dev/null; then
+            echo "FFmpeg already installed: $(ffmpeg -version | head -1)"
+            echo "ffmpeg_path=$(which ffmpeg)" >> $GITHUB_OUTPUT
+          else
+            echo "FFmpeg not found, will install..."
+            echo "ffmpeg_path=" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install FFmpeg (fallback if not present)
+        if: steps.ffmpeg_check.outputs.ffmpeg_path == ''
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+          echo "ffmpeg_path=$(which ffmpeg)" >> $GITHUB_OUTPUT
 
       - name: Run HLS processor
         env:
@@ -52,4 +55,5 @@ jobs:
           R2_BUCKET_NAME:       ${{ secrets.R2_BUCKET_NAME }}
           APP_URL:              ${{ secrets.APP_URL }}
           PROCESSOR_API_KEY:    ${{ secrets.PROCESSOR_API_KEY }}
+          FFMPEG_PATH:          ${{ steps.ffmpeg_check.outputs.ffmpeg_path != '' && steps.ffmpeg_check.outputs.ffmpeg_path || steps.ffmpeg_install.outputs.ffmpeg_path }}
         run: node scripts/processor.js
