@@ -20,7 +20,7 @@
 'use strict'
 
 const { execSync, execFileSync } = require('child_process')
-const { S3Client, GetObjectCommand, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, GetObjectCommand, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
 const fs   = require('fs')
 const path = require('path')
 const os   = require('os')
@@ -85,19 +85,88 @@ async function updateProgress(id, progress) {
                 }
 }
 
-async function markDone({ id, originalVideoKey }) {
+async function markDone({ id, originalVideoKey, media }) {
                 const res = await fetch(`${APP_URL}/api/admin/video-processor`, {
                                             method: 'PATCH',
                                             headers: {
                                                                                         'Content-Type': 'application/json',
                                                                                         'x-processor-key': PROCESSOR_API_KEY,
                                             },
-                                            body: JSON.stringify({ id, hlsProcessed: true, originalVideoKey, processingProgress: 100 }),
+                                            body: JSON.stringify({ id, hlsProcessed: true, originalVideoKey, media, processingProgress: 100 }),
                 })
                 if (!res.ok) {
                                             const err = await res.json().catch(() => ({}))
                                             throw new Error(`PATCH failed for ${id}: ${err.error || res.status}`)
                 }
+}
+
+function toObjectKey(value) {
+                if (typeof value !== 'string' || !value.trim()) return null
+                const raw = value.trim()
+                try {
+                                            const parsed = new URL(raw)
+                                            if (!['r2.hidrasistemas.com.br'].includes(parsed.hostname.toLowerCase())) return null
+                                            let key = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''))
+                                            if (key.startsWith('api/videos/')) key = key.slice('api/videos/'.length)
+                                            return key || null
+                } catch {
+                                            let key = raw.split(/[?#]/, 1)[0].replace(/^\/+/, '')
+                                            if (key.startsWith('api/videos/')) key = key.slice('api/videos/'.length)
+                                            return key || null
+                }
+}
+
+function mediaSourceKeys(media) {
+                const keys = []
+                for (const gender of ['male', 'female']) {
+                                            const entry = media?.[gender]
+                                            if (!entry || typeof entry !== 'object') continue
+                                            const key = toObjectKey(entry.key) || toObjectKey(entry.url)
+                                            if (key) keys.push(key)
+                }
+                return [...new Set(keys)]
+}
+
+async function objectExists(key) {
+                try {
+                                            await s3.send(new HeadObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }))
+                                            return true
+                } catch (error) {
+                                            if (error?.name === 'NotFound' || error?.name === 'NoSuchKey' || error?.$metadata?.httpStatusCode === 404) return false
+                                            throw error
+                }
+}
+
+async function retainExistingMedia(media) {
+                if (!media || typeof media !== 'object' || Array.isArray(media)) return media
+                const normalized = { ...media }
+                for (const gender of ['male', 'female']) {
+                                            const entry = media[gender]
+                                            if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue
+                                            const key = toObjectKey(entry.key) || toObjectKey(entry.url)
+                                            // Keep external demo media unchanged. Remove only R2 variants
+                                            // whose declared object key is verifiably absent.
+                                            if (!key || !/\.mp4$/i.test(key)) continue
+                                            if (await objectExists(key)) {
+                                                                                        normalized[gender] = {
+                                                                                                                    ...entry,
+                                                                                                                    key,
+                                                                                                                    url: `https://r2.hidrasistemas.com.br/${key}`,
+                                                                                        }
+                                            }
+                                            else delete normalized[gender]
+                }
+                return normalized
+}
+
+async function resolveSource(exercise) {
+                const candidates = [toObjectKey(exercise.originalVideoKey), ...mediaSourceKeys(exercise.media)]
+                                            .filter((key) => Boolean(key) && /\.mp4$/i.test(key))
+                const uniqueCandidates = [...new Set(candidates)]
+                for (const key of uniqueCandidates) {
+                                            if (await objectExists(key)) return { key, media: await retainExistingMedia(exercise.media) }
+                }
+                throw new Error(`No source object found in R2. Checked: ${uniqueCandidates.join(', ') || '(no valid keys)'}`)
 }
 
 // --- R2 helpers ---------------------------------------------------------------
@@ -152,8 +221,11 @@ function probeHeight(mp4Path) {
 
 // --- Core processor -----------------------------------------------------------
 async function processExercise(exercise) {
-                const { id, name, originalVideoKey, videoQualityHeights } = exercise
-                const mp4Key = originalVideoKey
+                const { id, name, videoQualityHeights } = exercise
+                const { key: mp4Key, media } = await resolveSource(exercise)
+                if (mp4Key !== exercise.originalVideoKey) {
+                                            console.log('  info Corrected source key: ' + (exercise.originalVideoKey || '(missing)') + ' -> ' + mp4Key)
+                }
 
     if (!mp4Key) {
                             console.warn(`  ! Skipping "${name}" - no originalVideoKey`)
@@ -273,7 +345,7 @@ async function processExercise(exercise) {
                             console.log(`  list Master playlist -> ${hlsFolder}master.m3u8`)
 
                     // 8. Mark as processed in DB
-                    await markDone({ id, originalVideoKey: mp4Key })
+                    await markDone({ id, originalVideoKey: mp4Key, media })
 
                     // 9. Delete original MP4 from R2 - HLS variants replace it
                     await deleteFromR2(mp4Key)
@@ -318,6 +390,7 @@ async function main() {
 
     console.log(`\n----------------------------`)
                 console.log(`check ${ok} processed  X ${fail} failed`)
+                if (fail > 0) process.exitCode = 1
 }
 
 main().catch(err => { console.error('Fatal:', err); process.exit(1) })
