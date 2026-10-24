@@ -362,6 +362,11 @@ async function processExercise(exercise) {
 
 async function main() {
                 const pending = await fetchPending()
+                const maxItems = Number(process.env.PROCESSOR_MAX_ITEMS || 200)
+                if (!Number.isInteger(maxItems) || maxItems < 1 || maxItems > 200) {
+                                            throw new Error(`PROCESSOR_MAX_ITEMS must be an integer from 1 to 200 (received: ${process.env.PROCESSOR_MAX_ITEMS})`)
+                }
+                const batch = pending.slice(0, maxItems)
                 const heights = DEFAULT_HEIGHTS.join('+')
                 console.log(`movie  Player.Action - Adaptive HLS Generator (tier-aware)\n`)
 
@@ -370,11 +375,11 @@ async function main() {
                             return
     }
 
-    console.log(`list ${pending.length} exercise(s) to process:\n`)
+    console.log(`list ${batch.length} of ${pending.length} pending exercise(s) to process (limit ${maxItems}):\n`)
 
     let ok = 0, fail = 0
 
-    for (const ex of pending) {
+    for (const ex of batch) {
                             const tierHeights = (Array.isArray(ex.videoQualityHeights) && ex.videoQualityHeights.length > 0)
                                             ? ex.videoQualityHeights.join('+')
                                                                     : heights
