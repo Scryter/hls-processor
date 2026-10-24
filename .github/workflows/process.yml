@@ -4,6 +4,12 @@ on:
   schedule:
     - cron: '*/10 * * * *'   # every 10 minutes
   workflow_dispatch:           # manual trigger / webhook trigger from app
+    inputs:
+      batchLimit:
+        description: Maximum number of exercises to process (1–200)
+        required: false
+        default: 200
+        type: number
 
 # Minimal GITHUB_TOKEN permissions - this job only reads the repo
 permissions:
@@ -42,6 +48,7 @@ jobs:
 
       - name: Run HLS processor
         env:
+          PROCESSOR_MAX_ITEMS: ${{ inputs.batchLimit || 200 }}
           R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
