@@ -20,7 +20,7 @@
 'use strict'
 
 const { execSync, execFileSync } = require('child_process')
-const { S3Client, GetObjectCommand, HeadObjectCommand, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
 const fs   = require('fs')
 const path = require('path')
 const os   = require('os')
@@ -88,14 +88,14 @@ async function updateProgress(id, progress) {
                 }
 }
 
-async function markDone({ id, originalVideoKey, media }) {
+async function markDone({ id, originalVideoKey, media, hlsProcessed = true, derivedBytes, sourceDeleted }) {
                 const res = await fetch(`${APP_URL}/api/admin/video-processor`, {
                                             method: 'PATCH',
                                             headers: {
                                                                                         'Content-Type': 'application/json',
                                                                                         'x-processor-key': PROCESSOR_API_KEY,
                                             },
-                                            body: JSON.stringify({ id, hlsProcessed: true, originalVideoKey, media, processingProgress: 100 }),
+                                            body: JSON.stringify({ id, hlsProcessed, originalVideoKey, media, processingProgress: hlsProcessed ? 100 : 99, ...(derivedBytes !== undefined ? { derivedBytes, sourceDeleted } : {}) }),
                 })
                 if (!res.ok) {
                                             const err = await res.json().catch(() => ({}))
@@ -228,6 +228,28 @@ async function deleteFromR2(key) {
                 await s3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }))
 }
 
+async function derivedFolderBytes(folder) {
+                let bytes = 0
+                let continuationToken
+                do {
+                                            const page = await s3.send(new ListObjectsV2Command({ Bucket: R2_BUCKET_NAME, Prefix: folder, ContinuationToken: continuationToken }))
+                                            for (const object of page.Contents || []) {
+                                                                                        const key = object.Key || ''
+                                                                                        if (key === `${folder}thumb.jpg` || key === `${folder}teaser.mp4` || key.startsWith(`${folder}hls/`)) bytes += object.Size || 0
+                                            }
+                                            continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined
+                } while (continuationToken)
+                return bytes
+}
+
+function localDerivedBytes(folder) {
+                if (!fs.existsSync(folder)) return 0
+                return fs.readdirSync(folder, { withFileTypes: true }).reduce((sum, entry) => {
+                                            const file = path.join(folder, entry.name)
+                                            return sum + (entry.isDirectory() ? localDerivedBytes(file) : fs.statSync(file).size)
+                }, 0)
+}
+
 // --- HLS master playlist builder ----------------------------------------------
 
 function buildMasterPlaylist(variants) {
@@ -256,13 +278,13 @@ function probeHeight(mp4Path) {
 
 // --- Core processor -----------------------------------------------------------
 async function processVariant(exercise, source, requestedHeights, variantIndex, variantCount) {
+                const folder = source.key.slice(0, source.key.lastIndexOf('/') + 1)
                 if (source.alreadyProcessed) {
                                             console.log(`  check Reusing existing HLS for ${source.gender || 'primary'}: ${source.key}`)
-                                            return
+                                            return await derivedFolderBytes(folder)
                 }
 
                 const { id } = exercise
-                const folder = source.key.slice(0, source.key.lastIndexOf('/') + 1)
                 const thumbKey = `${folder}thumb.jpg`
                 const teaserKey = `${folder}teaser.mp4`
                 const hlsFolder = `${folder}hls/`
@@ -336,6 +358,9 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                                             fs.writeFileSync(masterTmp, buildMasterPlaylist(variants))
                                             await uploadToR2(`${hlsFolder}master.m3u8`, masterTmp, 'application/vnd.apple.mpegurl')
                                             console.log(`  list Master playlist -> ${hlsFolder}master.m3u8`)
+                                            return (fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0)
+                                                                                        + (fs.existsSync(teaserPath) ? fs.statSync(teaserPath).size : 0)
+                                                                                        + localDerivedBytes(path.join(tmpDir, 'hls'))
                 } finally {
                                             fs.rmSync(tmpDir, { recursive: true, force: true })
                 }
@@ -350,8 +375,9 @@ async function processExercise(exercise) {
                 const requestedHeights = Array.isArray(videoQualityHeights) && videoQualityHeights.length > 0
                                             ? videoQualityHeights.filter((height) => QUALITY_CONFIG[height])
                                             : DEFAULT_HEIGHTS
+                const derivedBytesBySource = []
                 for (let i = 0; i < sources.length; i++) {
-                                            await processVariant(exercise, sources[i], requestedHeights, i, sources.length)
+                                            derivedBytesBySource.push(await processVariant(exercise, sources[i], requestedHeights, i, sources.length))
                 }
 
                 const primary = sources.find((source) => source.gender === 'male') || sources[0]
@@ -372,13 +398,16 @@ async function processExercise(exercise) {
                                             }
                 }
 
-                await markDone({ id, originalVideoKey: primary.key, media: nextMedia })
-                for (const source of sources) {
+                for (let i = 0; i < sources.length; i++) {
+                                            const source = sources[i]
+                                            if (!source.alreadyProcessed) await markDone({ id, originalVideoKey: source.key, hlsProcessed: false, derivedBytes: derivedBytesBySource[i], sourceDeleted: false })
                                             if (!source.alreadyProcessed) {
                                                                                         await deleteFromR2(source.key)
                                                                                         console.log(`  trash  Original MP4 deleted -> ${source.key}`)
                                             }
+                                            await markDone({ id, originalVideoKey: source.key, hlsProcessed: false, derivedBytes: derivedBytesBySource[i], sourceDeleted: true })
                 }
+                await markDone({ id, originalVideoKey: primary.key, media: nextMedia })
                 console.log(`  check Done - "${name}" (${sources.length} video variant(s))`)
 }
 
