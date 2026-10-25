@@ -24,6 +24,9 @@ const { S3Client, GetObjectCommand, HeadObjectCommand, PutObjectCommand, DeleteO
 const fs   = require('fs')
 const path = require('path')
 const os   = require('os')
+const RECOMMENDED_SOURCE_MAP = require('../config/recommended-source-map.json')
+const NEEDS_SOURCE_REVIEW = new Set(require('../config/unresolved-source-ids.json'))
+const R2_PUBLIC_BASE = 'https://r2.hidrasistemas.com.br'
 
 const {
                 R2_ACCOUNT_ID,
@@ -159,14 +162,46 @@ async function retainExistingMedia(media) {
                 return normalized
 }
 
-async function resolveSource(exercise) {
-                const candidates = [toObjectKey(exercise.originalVideoKey), ...mediaSourceKeys(exercise.media)]
-                                            .filter((key) => Boolean(key) && /\.mp4$/i.test(key))
-                const uniqueCandidates = [...new Set(candidates)]
-                for (const key of uniqueCandidates) {
-                                            if (await objectExists(key)) return { key, media: await retainExistingMedia(exercise.media) }
+async function resolveSources(exercise) {
+                const mappedSlug = RECOMMENDED_SOURCE_MAP[exercise.id]?.slug
+                const sources = []
+                const add = (key, gender, alreadyProcessed = false) => {
+                                            if (!sources.some((item) => item.key === key)) sources.push({ key, gender, alreadyProcessed })
                 }
-                throw new Error(`No source object found in R2. Checked: ${uniqueCandidates.join(', ') || '(no valid keys)'}`)
+
+                if (mappedSlug) {
+                                            for (const gender of ['male', 'female']) {
+                                                                                        const key = `free-exercise/${mappedSlug}/${gender}/original.mp4`
+                                                                                        const folder = key.slice(0, key.lastIndexOf('/') + 1)
+                                                                                        if (await objectExists(key)) add(key, gender)
+                                                                                        else if (await objectExists(`${folder}hls/master.m3u8`)) add(key, gender, true)
+                                            }
+                }
+
+                // Preserve normal user uploads and any valid legacy source if this
+                // record is not in the recovery map.
+                if (!sources.length) {
+                                            const primary = toObjectKey(exercise.originalVideoKey)
+                                            if (primary && /\.mp4$/i.test(primary) && await objectExists(primary)) {
+                                                                                        const parts = primary.split('/')
+                                                                                        const gender = ['male', 'female'].includes(parts.at(-2)) ? parts.at(-2) : null
+                                                                                        add(primary, gender)
+                                            }
+                                            for (const gender of ['male', 'female']) {
+                                                                                        const entry = exercise.media?.[gender]
+                                                                                        if (!entry || typeof entry !== 'object') continue
+                                                                                        const key = toObjectKey(entry.key) || toObjectKey(entry.url)
+                                                                                        if (key && /\.mp4$/i.test(key) && await objectExists(key)) add(key, gender)
+                                            }
+                }
+
+                if (!sources.length) {
+                                            const checked = mappedSlug
+                                                                                        ? ['male', 'female'].map((g) => `free-exercise/${mappedSlug}/${g}/original.mp4`)
+                                                                                        : [toObjectKey(exercise.originalVideoKey), ...mediaSourceKeys(exercise.media)].filter(Boolean)
+                                            throw new Error(`No source object found in R2. Checked: ${checked.join(', ') || '(no valid keys)'}`)
+                }
+                return sources
 }
 
 // --- R2 helpers ---------------------------------------------------------------
@@ -220,142 +255,131 @@ function probeHeight(mp4Path) {
 }
 
 // --- Core processor -----------------------------------------------------------
-async function processExercise(exercise) {
-                const { id, name, videoQualityHeights } = exercise
-                const { key: mp4Key, media } = await resolveSource(exercise)
-                if (mp4Key !== exercise.originalVideoKey) {
-                                            console.log('  info Corrected source key: ' + (exercise.originalVideoKey || '(missing)') + ' -> ' + mp4Key)
+async function processVariant(exercise, source, requestedHeights, variantIndex, variantCount) {
+                if (source.alreadyProcessed) {
+                                            console.log(`  check Reusing existing HLS for ${source.gender || 'primary'}: ${source.key}`)
+                                            return
                 }
 
-    if (!mp4Key) {
-                            console.warn(`  ! Skipping "${name}" - no originalVideoKey`)
-                            return
-    }
-
-    // Determine requested heights from tier config (default: [720, 1080])
-    const requestedHeights = Array.isArray(videoQualityHeights) && videoQualityHeights.length > 0
-                            ? videoQualityHeights.filter(h => QUALITY_CONFIG[h])
-                                : DEFAULT_HEIGHTS
-
-    const folder     = mp4Key.slice(0, mp4Key.lastIndexOf('/') + 1)
-                const thumbKey   = `${folder}thumb.jpg`
-                const teaserKey  = `${folder}teaser.mp4`
-                const hlsFolder  = `${folder}hls/`
-
-    const tmpDir     = fs.mkdtempSync(path.join(os.tmpdir(), `processor-${id}-`))
-                const mp4Path    = path.join(tmpDir, 'input.mp4')
-                const thumbPath  = path.join(tmpDir, 'thumb.jpg')
+                const { id } = exercise
+                const folder = source.key.slice(0, source.key.lastIndexOf('/') + 1)
+                const thumbKey = `${folder}thumb.jpg`
+                const teaserKey = `${folder}teaser.mp4`
+                const hlsFolder = `${folder}hls/`
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `processor-${id}-${source.gender || 'primary'}-`))
+                const mp4Path = path.join(tmpDir, 'input.mp4')
+                const thumbPath = path.join(tmpDir, 'thumb.jpg')
                 const teaserPath = path.join(tmpDir, 'teaser.mp4')
+                const progress = (local) => updateProgress(id, Math.round(5 + (variantIndex + local / 85) * (85 / variantCount)))
 
-    try {
-                            // 1. Download original MP4
-                    await updateProgress(id, 5)
-                            console.log(`  v  Downloading ${mp4Key}...`)
-                            await downloadFromR2(mp4Key, mp4Path)
+                try {
+                                            await progress(0)
+                                            console.log(`  v  Downloading ${source.key}...`)
+                                            await downloadFromR2(source.key, mp4Path)
 
-                    // 2. Generate thumbnail (frame at 1 second)
-                    await updateProgress(id, 10)
-                            console.log(`  camera Generating thumbnail...`)
-                            execSync([
-                                                                    'ffmpeg', '-y', '-i', `"${mp4Path}"`,
-                                                                    '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2',
-                                                                    `"${thumbPath}"`,
-                                                                ].join(' '), { stdio: 'inherit' })
-                        // 3. Generate teaser (first 10s, 720px wide, compressed)
-                    await updateProgress(id, 20)
-                            console.log(`  movie Generating teaser (10s preview)...`)
-                            execSync([
-                                                                    'ffmpeg', '-y', '-i', `"${mp4Path}"`,
-                                                                    '-t', '10',
-                                                                    '-vf', 'scale=720:-2',
-                                                                    '-c:v', 'libx264', '-c:a', 'aac',
-                                                                    '-preset', 'fast', '-crf', '28',
-                                                                    '-movflags', '+faststart',
-                                                                    `"${teaserPath}"`,
-                                                                ].join(' '), { stdio: 'inherit' })
+                                            await progress(5)
+                                            console.log(`  camera Generating thumbnail...`)
+                                            execSync(['ffmpeg', '-y', '-i', `"${mp4Path}"`, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', `"${thumbPath}"`].join(' '), { stdio: 'inherit' })
 
-                    // 4. Detect original resolution - never upscale
-                    await updateProgress(id, 28)
-                            const originalHeight = probeHeight(mp4Path)
-                            console.log(`  zoom Original resolution: ${originalHeight}p`)
+                                            await progress(15)
+                                            console.log(`  movie Generating teaser (10s preview)...`)
+                                            execSync(['ffmpeg', '-y', '-i', `"${mp4Path}"`, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', `"${teaserPath}"`].join(' '), { stdio: 'inherit' })
 
-                    // Filter: only generate heights <= original
-                        let targetHeights = requestedHeights.filter(h => h <= originalHeight)
-                            if (targetHeights.length === 0) {
-                                                                    // Original is smaller than all requested heights - use lowest requested
-                                            targetHeights = [Math.min(...requestedHeights)]
-                                                                    console.warn(`  ! All requested heights exceed original (${originalHeight}p). Using ${targetHeights[0]}p only.`)
-                            }
-                            console.log(`  list Generating HLS variants: ${targetHeights.map(h => `${h}p`).join(' + ')}`)
+                                            await progress(23)
+                                            const originalHeight = probeHeight(mp4Path)
+                                            console.log(`  zoom Original resolution: ${originalHeight}p`)
+                                            let targetHeights = requestedHeights.filter((height) => height <= originalHeight)
+                                            if (targetHeights.length === 0) {
+                                                                                        targetHeights = [Math.min(...requestedHeights)]
+                                                                                        console.warn(`  ! All requested heights exceed original (${originalHeight}p). Using ${targetHeights[0]}p only.`)
+                                            }
+                                            console.log(`  list Generating HLS variants: ${targetHeights.map((height) => `${height}p`).join(' + ')}`)
 
-                    // 5. Generate HLS for each target height
-                        await updateProgress(id, 35)
-                            for (const height of targetHeights) {
-                                                                    const cfg = QUALITY_CONFIG[height]
-                                                                    const hlsDir = path.join(tmpDir, 'hls', `${height}p`)
-                                                                    fs.mkdirSync(hlsDir, { recursive: true })
-                                                                    console.log(`  signal Generating HLS ${height}p...`)
-                                                                    execFileSync('ffmpeg', [
-                                                                                                                            '-y', '-i', mp4Path,
-                                                                                                                            '-profile:v', 'baseline', '-level', '3.0',
-                                                                                                                            '-vf', `scale='min(${cfg.width},iw)':trunc(ow/a/2)*2`,
-                                                                                                                            '-c:v', 'libx264', '-c:a', 'aac',
-                                                                                                                            '-b:v', cfg.bitrate, '-maxrate', cfg.maxrate, '-bufsize', cfg.bufsize,
-                                                                                                                            '-hls_time', '10',
-                                                                                                                            '-hls_playlist_type', 'vod',
-                                                                                                                            '-hls_segment_filename', path.join(hlsDir, 'seg%03d.ts'),
-                                                                                                                            path.join(hlsDir, 'playlist.m3u8'),
-                                                                                                            ], { stdio: 'inherit' })
-                            }
-                        // 6. Upload thumb + teaser
-                    await updateProgress(id, 75)
-                            if (fs.existsSync(thumbPath)) {
-                                                                    await uploadToR2(thumbKey, thumbPath, 'image/jpeg')
-                                                                    console.log(`  image  Thumbnail -> ${thumbKey}`)
-                            }
-                            if (fs.existsSync(teaserPath)) {
-                                                                    await uploadToR2(teaserKey, teaserPath, 'video/mp4')
-                                                                    console.log(`  video  Teaser -> ${teaserKey}`)
-                            }
+                                            await progress(30)
+                                            for (const height of targetHeights) {
+                                                                                        const cfg = QUALITY_CONFIG[height]
+                                                                                        const hlsDir = path.join(tmpDir, 'hls', `${height}p`)
+                                                                                        fs.mkdirSync(hlsDir, { recursive: true })
+                                                                                        console.log(`  signal Generating HLS ${height}p...`)
+                                                                                        execFileSync('ffmpeg', [
+                                                                                                                    '-y', '-i', mp4Path,
+                                                                                                                    '-profile:v', 'baseline', '-level', '3.0',
+                                                                                                                    '-vf', `scale='min(${cfg.width},iw)':trunc(ow/a/2)*2`,
+                                                                                                                    '-c:v', 'libx264', '-c:a', 'aac',
+                                                                                                                    '-b:v', cfg.bitrate, '-maxrate', cfg.maxrate, '-bufsize', cfg.bufsize,
+                                                                                                                    '-hls_time', '10', '-hls_playlist_type', 'vod',
+                                                                                                                    '-hls_segment_filename', path.join(hlsDir, 'seg%03d.ts'),
+                                                                                                                    path.join(hlsDir, 'playlist.m3u8'),
+                                                                                        ], { stdio: 'inherit' })
+                                            }
 
-                    // 7. Upload all HLS files and multi-bitrate master playlist
-                    await updateProgress(id, 85)
-                            const variants = []
+                                            await progress(75)
+                                            if (fs.existsSync(thumbPath)) await uploadToR2(thumbKey, thumbPath, 'image/jpeg')
+                                            if (fs.existsSync(teaserPath)) await uploadToR2(teaserKey, teaserPath, 'video/mp4')
 
-                                                    for (const height of targetHeights) {
-                                                                                            const cfg = QUALITY_CONFIG[height]
-                                                                                            const dir = path.join(tmpDir, 'hls', `${height}p`)
-                                                                                            if (!fs.existsSync(dir)) continue
-                                                                                            const files = fs.readdirSync(dir)
-                                                                                            for (const file of files) {
-                                                                                                                                                    const contentType = file.endsWith('.m3u8')
-                                                                                                                                                        ? 'application/vnd.apple.mpegurl'
-                                                                                                                                                                                                                : 'video/MP2T'
-                                                                                                                                                    await uploadToR2(`${hlsFolder}${height}p/${file}`, path.join(dir, file), contentType)
-                                                                                                    }
-                                                                                            variants.push({ bandwidth: cfg.bandwidth, resolution: `${cfg.width}x${height}`, path: `${height}p/playlist.m3u8` })
-                                                                                            const tsCount = files.filter(f => f.endsWith('.ts')).length
-                                                                                            console.log(`  cube HLS ${height}p -> ${hlsFolder}${height}p/ (${tsCount} segments)`)
-                                                    }
+                                            await progress(85)
+                                            const variants = []
+                                            for (const height of targetHeights) {
+                                                                                        const cfg = QUALITY_CONFIG[height]
+                                                                                        const dir = path.join(tmpDir, 'hls', `${height}p`)
+                                                                                        if (!fs.existsSync(dir)) continue
+                                                                                        const files = fs.readdirSync(dir)
+                                                                                        for (const file of files) {
+                                                                                                                    const contentType = file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T'
+                                                                                                                    await uploadToR2(`${hlsFolder}${height}p/${file}`, path.join(dir, file), contentType)
+                                                                                        }
+                                                                                        variants.push({ bandwidth: cfg.bandwidth, resolution: `${cfg.width}x${height}`, path: `${height}p/playlist.m3u8` })
+                                                                                        console.log(`  cube HLS ${height}p -> ${hlsFolder}${height}p/ (${files.filter((file) => file.endsWith('.ts')).length} segments)`)
+                                            }
 
-                    const masterContent = buildMasterPlaylist(variants)
-                            const masterTmp = path.join(tmpDir, 'master.m3u8')
-                            fs.writeFileSync(masterTmp, masterContent)
-                            await uploadToR2(`${hlsFolder}master.m3u8`, masterTmp, 'application/vnd.apple.mpegurl')
-                            console.log(`  list Master playlist -> ${hlsFolder}master.m3u8`)
+                                            const masterTmp = path.join(tmpDir, 'master.m3u8')
+                                            fs.writeFileSync(masterTmp, buildMasterPlaylist(variants))
+                                            await uploadToR2(`${hlsFolder}master.m3u8`, masterTmp, 'application/vnd.apple.mpegurl')
+                                            console.log(`  list Master playlist -> ${hlsFolder}master.m3u8`)
+                } finally {
+                                            fs.rmSync(tmpDir, { recursive: true, force: true })
+                }
+}
 
-                    // 8. Mark as processed in DB
-                    await markDone({ id, originalVideoKey: mp4Key, media })
+async function processExercise(exercise) {
+                const { id, name, videoQualityHeights } = exercise
+                const sources = await resolveSources(exercise)
+                const mappedSlug = RECOMMENDED_SOURCE_MAP[id]?.slug
+                if (mappedSlug) console.log(`  info Recovered source mapping: ${mappedSlug}`)
 
-                    // 9. Delete original MP4 from R2 - HLS variants replace it
-                    await deleteFromR2(mp4Key)
-                            console.log(`  trash  Original MP4 deleted -> ${mp4Key}`)
+                const requestedHeights = Array.isArray(videoQualityHeights) && videoQualityHeights.length > 0
+                                            ? videoQualityHeights.filter((height) => QUALITY_CONFIG[height])
+                                            : DEFAULT_HEIGHTS
+                for (let i = 0; i < sources.length; i++) {
+                                            await processVariant(exercise, sources[i], requestedHeights, i, sources.length)
+                }
 
-                    console.log(`  check Done - "${name}"`)
+                const primary = sources.find((source) => source.gender === 'male') || sources[0]
+                const nextMedia = {}
+                for (const gender of ['male', 'female']) {
+                                            const entry = exercise.media?.[gender]
+                                            const key = entry && typeof entry === 'object' ? (toObjectKey(entry.key) || toObjectKey(entry.url)) : null
+                                            if (!key && entry?.url) nextMedia[gender] = entry
+                }
+                for (const source of sources) {
+                                            if (!source.gender) continue
+                                            const folder = source.key.slice(0, source.key.lastIndexOf('/') + 1)
+                                            nextMedia[source.gender] = {
+                                                                                        ...(nextMedia[source.gender] || {}),
+                                                                                        key: source.key,
+                                                                                        url: `${R2_PUBLIC_BASE}/${folder}hls/master.m3u8`,
+                                                                                        thumb: `${R2_PUBLIC_BASE}/${folder}thumb.jpg`,
+                                            }
+                }
 
-    } finally {
-                            fs.rmSync(tmpDir, { recursive: true, force: true })
-    }
+                await markDone({ id, originalVideoKey: primary.key, media: nextMedia })
+                for (const source of sources) {
+                                            if (!source.alreadyProcessed) {
+                                                                                        await deleteFromR2(source.key)
+                                                                                        console.log(`  trash  Original MP4 deleted -> ${source.key}`)
+                                            }
+                }
+                console.log(`  check Done - "${name}" (${sources.length} video variant(s))`)
 }
 
 // --- Main ---------------------------------------------------------------------
@@ -366,7 +390,9 @@ async function main() {
                 if (!Number.isInteger(maxItems) || maxItems < 1 || maxItems > 200) {
                                             throw new Error(`PROCESSOR_MAX_ITEMS must be an integer from 1 to 200 (received: ${process.env.PROCESSOR_MAX_ITEMS})`)
                 }
-                const batch = pending.slice(0, maxItems)
+                const needsReview = pending.filter((exercise) => NEEDS_SOURCE_REVIEW.has(exercise.id))
+                const queue = pending.filter((exercise) => !NEEDS_SOURCE_REVIEW.has(exercise.id))
+                const batch = queue.slice(0, maxItems)
                 const heights = DEFAULT_HEIGHTS.join('+')
                 console.log(`movie  Player.Action - Adaptive HLS Generator (tier-aware)\n`)
 
@@ -375,7 +401,7 @@ async function main() {
                             return
     }
 
-    console.log(`list ${batch.length} of ${pending.length} pending exercise(s) to process (limit ${maxItems}):\n`)
+                console.log(`list ${batch.length} of ${queue.length} processable exercise(s); ${needsReview.length} pending source review (limit ${maxItems}):\n`)
 
     let ok = 0, fail = 0
 
@@ -394,7 +420,7 @@ async function main() {
     }
 
     console.log(`\n----------------------------`)
-                console.log(`check ${ok} processed  X ${fail} failed`)
+                console.log(`check ${ok} processed  ! ${needsReview.length} pending source review  X ${fail} failed`)
                 if (fail > 0) process.exitCode = 1
 }
 

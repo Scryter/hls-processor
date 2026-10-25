@@ -1,0 +1,971 @@
+{
+  "cmsjtoipl000dv8vcxcmhyugb": {
+    "slug": "cable-pushdown-rope-attachment"
+  },
+  "cmsjtoikt000bv8vc21utw0hu": {
+    "slug": "barbell-curl"
+  },
+  "cmsjtojwd000vv8vce785q41k": {
+    "slug": "stretching-hamstring-stretch"
+  },
+  "cmsjtojrp000tv8vcxfmt7ob8": {
+    "slug": "front-plank-female"
+  },
+  "cmsjtoktg0013v8vcueppzupq": {
+    "slug": "burpee"
+  },
+  "cmsjtoj3l000jv8vcdsuqhk2p": {
+    "slug": "dumbbell-lateral-raise"
+  },
+  "cmsjtokos0011v8vcnkcaz5ia": {
+    "slug": "stationary-bike"
+  },
+  "cmsjtoiyx000hv8vcq0mufo0v": {
+    "slug": "lever-seated-leg-curl"
+  },
+  "cmsjtoi6l0005v8vcdoco37sr": {
+    "slug": "dumbbell-deadlift"
+  },
+  "cmvisiuzu003fv8hc2iz67mvt": {
+    "slug": "stretching-spinal-stretch-on-exercise-ball"
+  },
+  "cmvijhw70004lv8goorsgf4cl": {
+    "slug": "dumbbell-seated-triceps-extension"
+  },
+  "cmsjtok11000xv8vc49jjlgv6": {
+    "slug": "running"
+  },
+  "cmvisigo4000pv8hct4u2wuqx": {
+    "slug": "lever-pec-deck-fly"
+  },
+  "cmvie6br4002zv8poal0pcw69": {
+    "slug": "stretching-reverse-dip"
+  },
+  "cmvijh7xh000pv8gokiwbatq7": {
+    "slug": "band-seated-row"
+  },
+  "cmvijhy8i004xv8golixms5m4": {
+    "slug": "incline-leg-hip-raise"
+  },
+  "cmviskjxz0019v8ksozfwd88i": {
+    "slug": "stretching-bridge-pose-setu-bandhasana"
+  },
+  "cmvisitkv0037v8hcs4l0uknb": {
+    "slug": "stretching-single-leg-stretch-bent-knee"
+  },
+  "cmvisiufn003bv8hcdl4r7fif": {
+    "slug": "stretching-sitting-bent-over-back-stretch"
+  },
+  "cmvisivjp003jv8hcxn3py7lx": {
+    "slug": "stretching-stairs-calf-stretch"
+  },
+  "cmvisiwdn003pv8hctmyp3pg1": {
+    "slug": "stretching-standing-lateral-stretch-1"
+  },
+  "cmvisirb8002rv8hc0b9td3vc": {
+    "slug": "stretching-quadriceps-stretch"
+  },
+  "cmvie5xab0005v8poxd2n31dc": {
+    "slug": "dumbbell-behind-back-wrist-curl"
+  },
+  "cmvie62ww0019v8po4pdgxd5c": {
+    "slug": "cable-triceps-pushdown"
+  },
+  "cmvisirlj002tv8hccas6nj5p": {
+    "slug": "stretching-rear-deltoid-stretch"
+  },
+  "cmvie5y40000bv8por9zt4kfk": {
+    "slug": "cable-one-arm-curl"
+  },
+  "cmvie5ye5000dv8pojcvdm5ld": {
+    "slug": "cable-standing-inner-curl"
+  },
+  "cmvisiwxm003tv8hc3oesp4bs": {
+    "slug": "stretching-standing-side-bend-bent-arm"
+  },
+  "cmviskkdv001bv8ksvg2upuis": {
+    "slug": "stretching-butterfly-yoga-pose"
+  },
+  "cmvie5z7h000jv8poavmbf294": {
+    "slug": "barbell-close-grip-bench-press"
+  },
+  "cmvie5zqn000nv8po5rxb8gux": {
+    "slug": "cable-seated-row-wide-grip"
+  },
+  "cmviske7u0005v8ks9kuwbazi": {
+    "slug": "push-ups"
+  },
+  "cmvisiv9t003hv8hczx3dzrxe": {
+    "slug": "stretching-spine-stretch"
+  },
+  "cmvisigxu000rv8hcsx75rfw6": {
+    "slug": "lever-preacher-curl"
+  },
+  "cmvijhsrn003zv8go2ckigp4k": {
+    "slug": "dumbbell-lying-alternate-extension"
+  },
+  "cmvie612s000xv8pop9jx2odv": {
+    "slug": "dumbbell-arnold-press"
+  },
+  "cmvie62me0017v8po0u1wf9d5": {
+    "slug": "cable-pushdown-rope-attachment"
+  },
+  "cmvie61xd0013v8pob215vbb6": {
+    "slug": "military-press"
+  },
+  "cmvie62bv0015v8powjhu237g": {
+    "slug": "dumbbell-upright-row"
+  },
+  "cmvie6cuy0037v8pot7fa3tqd": {
+    "slug": "vertical-leg-raise-on-parallel-bars"
+  },
+  "cmviskko9001dv8ks4hezousd": {
+    "slug": "stretching-calf-stretch-with-rope"
+  },
+  "cmvie6dfv003bv8po3ffwu5k5": {
+    "slug": "side-bridge-side-plank"
+  },
+  "cmvijhl8h002tv8go10hmkxhv": {
+    "slug": "corkscrew-pilates"
+  },
+  "cmviskijj000zv8ksmlkm5j1d": {
+    "slug": "stretching-above-head-chest-stretch"
+  },
+  "cmvie64vl001nv8poovn01uk5": {
+    "slug": "barbell-straight-leg-deadlift"
+  },
+  "cmvisijrc001bv8hc674qwy07": {
+    "slug": "lying-hip-lift-on-stability-ball"
+  },
+  "cmvijha150011v8go3ef2u19a": {
+    "slug": "band-triceps-pushdown"
+  },
+  "cmvie655j001pv8po8ia34p6w": {
+    "slug": "single-dumbbell-stiff-leg-deadlift"
+  },
+  "cmvie6697001xv8pohzpiu3vd": {
+    "slug": "dumbbell-one-arm-triceps-extension"
+  },
+  "cmvie6e0l003fv8po0h1d23ep": {
+    "slug": "smith-leg-press"
+  },
+  "cmvisiljd001nv8hcdnoyy9ne": {
+    "slug": "stretching-crossover-kneeling-hip-flexor-stretch"
+  },
+  "cmvie6elb003jv8po7j9xade5": {
+    "slug": "side-bend-on-stability-ball"
+  },
+  "cmvijh65x000fv8goe6k4brgt": {
+    "slug": "band-leg-curl"
+  },
+  "cmvisivtq003lv8hcpf9b5ovr": {
+    "slug": "stretching-standing-back-rotation-stretch"
+  },
+  "cmvie6ax2002tv8pou05i5kwk": {
+    "slug": "lever-incline-hammer-chest-press"
+  },
+  "cmviskhdr000rv8ksvvpki813": {
+    "slug": "sled-45-degree-leg-wide-press"
+  },
+  "cmvie69jv002jv8pou9f4zq2c": {
+    "slug": "reverse-grip-pull-up"
+  },
+  "cmvijhbfz0019v8goupjl4bwy": {
+    "slug": "bench-dips"
+  },
+  "cmvie6c110031v8pobotvl9vn": {
+    "slug": "hanging-leg-hip-raise"
+  },
+  "cmvie6cay0033v8poz8rd2h8w": {
+    "slug": "hanging-straight-leg-raise"
+  },
+  "cmvie6dq3003dv8pomb075laj": {
+    "slug": "lever-horizontal-leg-press"
+  },
+  "cmvie6d5l0039v8pof50ylsot": {
+    "slug": "front-plank-female"
+  },
+  "cmvijhtnm0045v8goig0av5wc": {
+    "slug": "dumbbell-lying-rear-delt-row"
+  },
+  "cmvijhctz001hv8goc0erueky": {
+    "slug": "cable-close-grip-front-lat-pulldown"
+  },
+  "cmviskkyk001fv8kspcy1suj7": {
+    "slug": "stretching-calf-stretch-with-strap"
+  },
+  "cmvisit0i0033v8hcwykka4br": {
+    "slug": "stretching-seated-wide-angle-pose-sequence"
+  },
+  "cmvisiupv003dv8hc58bh6jae": {
+    "slug": "stretching-slopes-towards-stretch"
+  },
+  "cmvisiw3i003nv8hc2gphscr5": {
+    "slug": "stretching-standing-bench-calf-stretch"
+  },
+  "cmvie5x0l0003v8pov48oeygk": {
+    "slug": "barbell-drag-curl"
+  },
+  "cmvie60tc000vv8poepe9u9v3": {
+    "slug": "dumbbell-alternate-shoulder-press"
+  },
+  "cmvie641h001hv8po235y8czy": {
+    "slug": "dumbbell-deadlift"
+  },
+  "cmvie64ls001lv8po0msl27v9": {
+    "slug": "stationary-bike"
+  },
+  "cmvie66j0001zv8pox7bw2rtk": {
+    "slug": "dumbbell-lunge"
+  },
+  "cmvie673c0023v8pogz5wfodf": {
+    "slug": "barbell-lunge"
+  },
+  "cmvijhd6r001jv8gonk30uwtn": {
+    "slug": "cable-kneeling-crunch"
+  },
+  "cmvie6j5r004fv8pot4g4kgzn": {
+    "slug": "dumbbell-rear-delt-row"
+  },
+  "cmvijhuuv004dv8gosedi6e4o": {
+    "slug": "dumbbell-pronate-grip-triceps-extension"
+  },
+  "cmvie6h5a0041v8poxnk235g3": {
+    "slug": "barbell-shrug"
+  },
+  "cmvie6iba0049v8poqo3xj77l": {
+    "slug": "barbell-rear-delt-raise"
+  },
+  "cmvie6l1a004rv8pommojmddr": {
+    "slug": "weighted-leg-extension-crunch"
+  },
+  "cmvie6lbr004tv8po7bsc9oif": {
+    "slug": "dumbbell-lying-triceps-extension"
+  },
+  "cmvie6lmg004vv8po4hwjqoei": {
+    "slug": "lying-supine-dumbbell-curl"
+  },
+  "cmvie6mhw0051v8pozm4b3lqi": {
+    "slug": "russian-twist-on-stability-ball-arms-straight"
+  },
+  "cmvijh3bp0001v8gou2jz526l": {
+    "slug": "45-degree-bycicle-twisting-crunch"
+  },
+  "cmvijh9br000xv8gorpr3yrcp": {
+    "slug": "band-standing-lift"
+  },
+  "cmvijhjrq002jv8go7onink3r": {
+    "slug": "chest-lift-with-rotation"
+  },
+  "cmvijhm3l002zv8goaorx68rq": {
+    "slug": "crunch-legs-on-stability-ball"
+  },
+  "cmviji0hc0057v8gob1wruw1j": {
+    "slug": "jackknife-pilates"
+  },
+  "cmviskfwg000hv8ks3tn5mkzh": {
+    "slug": "seated-twist-on-stability-ball"
+  },
+  "cmvijh6iv000hv8gokbcha2hj": {
+    "slug": "band-one-arm-forward-raise"
+  },
+  "cmvijh6vf000jv8gog12svyq5": {
+    "slug": "band-one-leg-kickback-bent-position"
+  },
+  "cmviji4up005vv8goztb61wpp": {
+    "slug": "lever-lying-leg-curl"
+  },
+  "cmvijh4en0005v8go01wbb44z": {
+    "slug": "band-decline-sit-ups"
+  },
+  "cmvijh89p000rv8goxjm08cld": {
+    "slug": "band-side-bend"
+  },
+  "cmvijh8z7000vv8got9sfm55r": {
+    "slug": "band-standing-leg-curl"
+  },
+  "cmviskh3b000pv8ksz125d3hi": {
+    "slug": "sled-45-degree-calf-press"
+  },
+  "cmvijhaqh0015v8go625llml2": {
+    "slug": "barbell-seated-behind-head-military-press"
+  },
+  "cmvijhbs8001bv8goacydkhx2": {
+    "slug": "bent-knee-lying-twist-on-stability-ball"
+  },
+  "cmvijhc4r001dv8go3fmhpflf": {
+    "slug": "cable-bar-lateral-pulldown-reverse-grip"
+  },
+  "cmvijhcha001fv8go08e3so8j": {
+    "slug": "cable-bar-lateral-pulldown-wide-shoulder-grip"
+  },
+  "cmviskjo40017v8kski4z1rsq": {
+    "slug": "stretching-boat-stretch"
+  },
+  "cmvisihrq000xv8hcci4frcu0": {
+    "slug": "lever-seated-hip-abduction"
+  },
+  "cmvie65p7001tv8po0o9tqwzq": {
+    "slug": "dumbbell-decline-fly-45-degree-1"
+  },
+  "cmvisix75003vv8hc6iqxuonj": {
+    "slug": "stretching-standing-wheel-rollout"
+  },
+  "cmvijhiqp002dv8gouw4p47i1": {
+    "slug": "cardio-exercises"
+  },
+  "cmvijhevl001rv8gopv2dgdn1": {
+    "slug": "cable-one-arm-forward-raise"
+  },
+  "cmvie686x0029v8po9gqqlv55": {
+    "slug": "smith-chair-squat"
+  },
+  "cmvijhfxt001vv8go4ffn5y78": {
+    "slug": "cable-one-arm-lateral-raise"
+  },
+  "cmvijhj6j002fv8goo3e96iyq": {
+    "slug": "cardio-exercises-machines"
+  },
+  "cmvijhgob001zv8goianwy60j": {
+    "slug": "cable-seated-high-row-v-bar"
+  },
+  "cmvijhgyu0021v8gox7m9ztwh": {
+    "slug": "cable-standing-crunch"
+  },
+  "cmvijhh9i0023v8goi26sgptb": {
+    "slug": "cable-standing-fly-crossover-fly"
+  },
+  "cmvijhjh2002hv8go2nhbglj1": {
+    "slug": "chest-dips"
+  },
+  "cmvijhhuv0027v8gov9omyxlp": {
+    "slug": "cable-straight-arm-pulldown"
+  },
+  "cmvijhi5n0029v8goy6kvhr8z": {
+    "slug": "cable-twist-up-down"
+  },
+  "cmvijhig6002bv8gog2rza42j": {
+    "slug": "cambered-bar-lying-row"
+  },
+  "cmvijhvap004fv8goim06pjuf": {
+    "slug": "dumbbell-seated-front-raise"
+  },
+  "cmvijhk2j002lv8gowoxpo0ky": {
+    "slug": "chin-ups-pull-ups"
+  },
+  "cmvie699y002hv8poouxybewi": {
+    "slug": "close-grip-chin-up"
+  },
+  "cmvijhkd2002nv8gowfxfvzvs": {
+    "slug": "classic-barbell-squat"
+  },
+  "cmvijhky3002rv8gohpxua4sa": {
+    "slug": "commando-pull-up"
+  },
+  "cmvie6evm003lv8po3xfihq1w": {
+    "slug": "donkey-calf-raise"
+  },
+  "cmvijhme90031v8gofvifdeer": {
+    "slug": "crunch-on-bench"
+  },
+  "cmvijhmoh0033v8goy9th9wcf": {
+    "slug": "crunch-straight-leg-up"
+  },
+  "cmvijhmyz0035v8go4wc6h0er": {
+    "slug": "dumbbell-alternate-seated-biceps-curl"
+  },
+  "cmvijhnu3003bv8gojsx6l3i7": {
+    "slug": "dumbbell-close-grip-press"
+  },
+  "cmvijhvle004hv8go7518vf14": {
+    "slug": "dumbbell-seated-lateral-raise"
+  },
+  "cmvijhp87003fv8goznrallge": {
+    "slug": "dumbbell-fly-on-exercise-ball"
+  },
+  "cmvie6f67003nv8pod2ch6c5o": {
+    "slug": "band-standing-calf-raise"
+  },
+  "cmvijhptu003jv8go5anpwu6r": {
+    "slug": "dumbbell-incline-biceps-curl"
+  },
+  "cmvie6fq7003rv8pob9pkojrh": {
+    "slug": "lever-seated-calf-raise"
+  },
+  "cmvisiimu0013v8hczmtbqpaz": {
+    "slug": "lever-standing-hip-extension"
+  },
+  "cmvijhrkd003rv8gof4rn4lmb": {
+    "slug": "dumbbell-incline-hammer-press"
+  },
+  "cmvijhrv0003tv8gomqba38l3": {
+    "slug": "dumbbell-incline-rear-lateral-raise"
+  },
+  "cmvijhs5z003vv8go21tz2oqc": {
+    "slug": "dumbbell-incline-row"
+  },
+  "cmvijht240041v8godcuyqg0w": {
+    "slug": "dumbbell-lying-femoral"
+  },
+  "cmvguttxf0002v8bst9rc2n2i": {
+    "slug": "barbell-lunge"
+  },
+  "cmvijhtci0043v8gorcjfnh23": {
+    "slug": "dumbbell-lying-hammer-press"
+  },
+  "cmvijhxy9004vv8goob616k0u": {
+    "slug": "hundred-pilates"
+  },
+  "cmvijhtyq0047v8gowv4fxejo": {
+    "slug": "dumbbell-one-arm-zottman-preacher-curl"
+  },
+  "cmvijhu980049v8go9p7tr62h": {
+    "slug": "dumbbell-over-bench-wrist-curl"
+  },
+  "cmvijhuk8004bv8gointnvbpr": {
+    "slug": "dumbbell-preacher-curl-over-exercise-ball"
+  },
+  "cmvijhdv5001lv8go5ong3y0k": {
+    "slug": "cable-lateral-raise"
+  },
+  "cmvie6fzz003tv8poq5v41dup": {
+    "slug": "stretching-seated-calf-stretch"
+  },
+  "cmviji1n4005fv8gohyv18ced": {
+    "slug": "kettlebell-deadlift"
+  },
+  "cmvijhxnr004tv8goumw0m7ge": {
+    "slug": "hip-raise-bridge"
+  },
+  "cmvisiixq0015v8hctvg4mbq9": {
+    "slug": "lever-standing-rear-kick"
+  },
+  "cmvijhxde004rv8goc7p754h0": {
+    "slug": "ez-barbell-biceps-curl"
+  },
+  "cmvijhyx9004zv8go98ch2eej": {
+    "slug": "inverted-row-between-chairs"
+  },
+  "cmvijhzis0053v8go0qos837v": {
+    "slug": "jack-knife-floor"
+  },
+  "cmviji0760055v8goid247faa": {
+    "slug": "jack-split-crunches"
+  },
+  "cmvisijha0019v8hcxxd1s5ux": {
+    "slug": "lever-triceps-extension"
+  },
+  "cmvie6gaj003vv8poptsv2a84": {
+    "slug": "dumbbell-standing-calf-raise"
+  },
+  "cmvie68qp002dv8po215ckozo": {
+    "slug": "pull-up-wide-front-grip"
+  },
+  "cmviji1d2005dv8gose7r9uqy": {
+    "slug": "jumping-jack"
+  },
+  "cmvisixhl003xv8hcvnbt01xa": {
+    "slug": "stretching-wrist-circles"
+  },
+  "cmviji2cg005jv8goqexhfan8": {
+    "slug": "leg-curl-on-stability-ball"
+  },
+  "cmviji30k005lv8gocmp2ahyj": {
+    "slug": "leg-raise-hip-lift"
+  },
+  "cmvijhe5q001nv8goqpl589p7": {
+    "slug": "cable-lying-fly-flat-bench-cable-fly"
+  },
+  "cmvisikzp001jv8hcd7ywszd7": {
+    "slug": "stretching-ceiling-look-stretch"
+  },
+  "cmvgutw6q0005v8bswtdsmbg6": {
+    "slug": "military-press"
+  },
+  "cmvisilt4001pv8hc4291hfd9": {
+    "slug": "stretching-dynamic-chest-stretch"
+  },
+  "cmviji1xb005hv8gok0rejseh": {
+    "slug": "landmine-180"
+  },
+  "cmvgutwxn0006v8bsy9vhoqdx": {
+    "slug": "cable-pushdown-rope-attachment"
+  },
+  "cmvisiftx000jv8hc51lyd8cr": {
+    "slug": "dumbbell-squat"
+  },
+  "cmvijhvwd004jv8go5ke9nqn7": {
+    "slug": "dumbbell-seated-preacher-curl"
+  },
+  "cmvisim34001rv8hc01zrx8y0": {
+    "slug": "stretching-feet-and-ankles-rotation-stretch"
+  },
+  "cmvisixsu003zv8hc82f7h2ru": {
+    "slug": "triceps-dips"
+  },
+  "cmvijhwmp004nv8goju8zqkgz": {
+    "slug": "elliptical"
+  },
+  "cmvie6gkv003xv8po2v8ogt01": {
+    "slug": "dumbbell-single-leg-calf-raise"
+  },
+  "cmvisii1z000zv8hcxdrn5qfh": {
+    "slug": "lever-seated-hip-adduction"
+  },
+  "cmvijheg1001pv8goiam3ohve": {
+    "slug": "cable-lying-triceps-extension"
+  },
+  "cmvisij7i0017v8hc5tajdg8h": {
+    "slug": "lever-t-bar-row"
+  },
+  "cmviji3b2005nv8goxfg99yhz": {
+    "slug": "lever-high-row"
+  },
+  "cmvisik1y001dv8hc0skdelxk": {
+    "slug": "lying-scissor-kick-female"
+  },
+  "cmvisikdh001fv8hc2ngvjqsf": {
+    "slug": "lying-straight-leg-raise"
+  },
+  "cmvisikoy001hv8hcx0q7zeto": {
+    "slug": "medicine-ball-sit-up-wall"
+  },
+  "cmvisieqa000bv8hcbrgw1kbr": {
+    "slug": "deep-push-ups"
+  },
+  "cmvisiy3c0041v8hcbdlzosxc": {
+    "slug": "twisting-crunch"
+  },
+  "cmvguu02v0009v8bsrpu1hjmr": {
+    "slug": "classic-barbell-squat"
+  },
+  "cmvisipx6002hv8hchtm8kmlc": {
+    "slug": "stretching-middle-back-stretch-1"
+  },
+  "cmvijhf5y001tv8goeqxudnms": {
+    "slug": "cable-one-arm-lateral-pulldown"
+  },
+  "cmvisiyd70043v8hci203yfzi": {
+    "slug": "v-up"
+  },
+  "cmvijh53j0009v8go03dfu3zh": {
+    "slug": "band-hip-abduction"
+  },
+  "cmvguu37u000av8bs2kbrj0vu": {
+    "slug": "front-plank-female"
+  },
+  "cmvisiyxh0047v8hc16758n73": {
+    "slug": "weighted-lying-twist"
+  },
+  "cmvisitux0039v8hcpzkwoy7o": {
+    "slug": "stretching-single-straight-leg-stretch"
+  },
+  "cmvisimde001tv8hcowprxdph": {
+    "slug": "stretching-feet-and-ankles-stretch"
+  },
+  "cmvisiyn90045v8hckneau0zn": {
+    "slug": "walk-wave-machine"
+  },
+  "cmsjtoiu9000fv8vc981qp03m": {
+    "slug": "lever-horizontal-leg-press"
+  },
+  "cmvie6gv6003zv8popyytduqp": {
+    "slug": "dumbbell-seated-calf-raise"
+  },
+  "cmvguu3r7000bv8bs3vlr2p8c": {
+    "slug": "dumbbell-shrug"
+  },
+  "cmvisiz7u0049v8hcsqcxr8lv": {
+    "slug": "weighted-sissy-squat"
+  },
+  "cmvijhwxi004pv8goli6i5tyv": {
+    "slug": "ez-barbell-anti-gravity-press"
+  },
+  "cmviskfm9000fv8ksqtyoojce": {
+    "slug": "rotate-push-up-female"
+  },
+  "cmviskeso0009v8ks6d10b8ld": {
+    "slug": "reverse-crunch-female"
+  },
+  "cmvisie5s0007v8hc5ah4sarg": {
+    "slug": "cardio-exercises-machine"
+  },
+  "cmvie67dc0025v8potb3rds0y": {
+    "slug": "dumbbell-side-bend"
+  },
+  "cmviskg6a000jv8kst82tsp7l": {
+    "slug": "seated-twist-straight-arm"
+  },
+  "cmvijhgdy001xv8gob8hj7kj1": {
+    "slug": "cable-pulldown"
+  },
+  "cmvisimn5001vv8hcbqo3tljg": {
+    "slug": "stretching-flexion-leg-sit-up"
+  },
+  "cmvie6hfb0043v8po812oytxt": {
+    "slug": "dumbbell-shrug"
+  },
+  "cmvijhlt1002xv8go3pe90cu9": {
+    "slug": "crunch-leg-raise"
+  },
+  "cmvie5xk50007v8po5trlh1no": {
+    "slug": "dumbbell-biceps-curl"
+  },
+  "cmsjtoig50009v8vctqqn93c3": {
+    "slug": "dumbbell-alternate-shoulder-press"
+  },
+  "cmvie5yxk000hv8pou4j3j0d6": {
+    "slug": "barbell-underhand-bent-over-row"
+  },
+  "cmvie5xud0009v8po3zbi27wm": {
+    "slug": "dumbbell-concentration-curl"
+  },
+  "cmvie5yns000fv8po33jrgq6a": {
+    "slug": "dumbbell-iron-cross"
+  },
+  "cmvisizhu004bv8hce2wxdeyb": {
+    "slug": "weighted-standing-curl"
+  },
+  "cmsjtoibd0007v8vc8iov6y7g": {
+    "slug": "barbell-underhand-bent-over-row"
+  },
+  "cmvisimxl001xv8hc45amwylz": {
+    "slug": "stretching-front-toe-touch"
+  },
+  "cmvie60js000tv8poosdk8cn9": {
+    "slug": "dumbbell-incline-curl"
+  },
+  "cmvie6hpn0045v8povu523adm": {
+    "slug": "lever-shrug"
+  },
+  "cmvie609w000rv8pojofzd9ys": {
+    "slug": "barbell-upright-row-wide-grip"
+  },
+  "cmsjtoj8e000lv8vcwi409ide": {
+    "slug": "dumbbell-lunge"
+  },
+  "cmvijhnk70039v8golckm9h11": {
+    "slug": "dumbbell-bent-over-row"
+  },
+  "cmvie6i0t0047v8pon65tqpeo": {
+    "slug": "dumbbell-incline-shrug"
+  },
+  "cmsjtojn0000rv8vc1oqzy28z": {
+    "slug": "sit-ups"
+  },
+  "cmsjtokk3000zv8vc69y8ew0d": {
+    "slug": "treadmill-running"
+  },
+  "cmvijhz8c0051v8gogcq5bcn4": {
+    "slug": "inverted-row-with-straps"
+  },
+  "cmvijhorl003dv8goeya6jkkp": {
+    "slug": "dumbbell-cross-body-hammer-curl"
+  },
+  "cmvie5wjo0001v8pokf68r09k": {
+    "slug": "barbell-curl"
+  },
+  "cmvijh5g9000bv8go69y94yfj": {
+    "slug": "band-hip-adduction"
+  },
+  "cmviji3lm005pv8godk6dy3ub": {
+    "slug": "lever-kneeling-leg-curl"
+  },
+  "cmvie6ila004bv8pori4jucpe": {
+    "slug": "cable-rear-delt-row-with-rope"
+  },
+  "cmvie6000000pv8po6vvv40sa": {
+    "slug": "cable-one-arm-twisting-seated-row"
+  },
+  "cmvie5zh0000lv8poax1gzx6w": {
+    "slug": "cable-straight-back-seated-row-v-grip"
+  },
+  "cmvijhadi0013v8goi5dve28e": {
+    "slug": "barbell-clean-and-press"
+  },
+  "cmvie61cl000zv8pozpqddog9": {
+    "slug": "dumbbell-bench-seated-press"
+  },
+  "cmvie6379001bv8poyusz5h3a": {
+    "slug": "cable-rope-high-pulley-overhead-triceps-extension"
+  },
+  "cmvie63h7001dv8po0qskwan9": {
+    "slug": "dumbbell-kickback"
+  },
+  "cmviji0rx0059v8goi11nyao1": {
+    "slug": "jump-rope"
+  },
+  "cmvie6jfv004hv8poj7n3yf22": {
+    "slug": "dumbbell-palm-rotational-bent-over-row"
+  },
+  "cmvie65fb001rv8po48ohet5a": {
+    "slug": "smith-deadlift-deadlift-1"
+  },
+  "cmvijhpj0003hv8gomcjnxbv3": {
+    "slug": "dumbbell-front-raise"
+  },
+  "cmviskdig0001v8ks9d9c1j7u": {
+    "slug": "old-school-reverse-extensions"
+  },
+  "cmvie67rk0027v8pobkvdf38b": {
+    "slug": "dumbbell-single-leg-squat"
+  },
+  "cmvie68h2002bv8po5wj82zd2": {
+    "slug": "sled-hack-squat"
+  },
+  "cmvisin7h001zv8hccc0bofrz": {
+    "slug": "stretching-hip-circles-stretch"
+  },
+  "cmvijhb2v0017v8goombfgs3r": {
+    "slug": "barbell-standing-back-wrist-curl"
+  },
+  "cmvie6b6y002vv8pones9g0jh": {
+    "slug": "lever-seated-dips"
+  },
+  "cmvie6bh7002xv8pozuzh7o8e": {
+    "slug": "scapula-dips"
+  },
+  "cmvie6ckq0035v8po3r6n2iq0": {
+    "slug": "lying-floor-leg-raise"
+  },
+  "cmvie6eaz003hv8poqueflo7i": {
+    "slug": "lever-seated-leg-curl"
+  },
+  "cmvijhqjf003lv8go5ragzhz4": {
+    "slug": "dumbbell-incline-fly"
+  },
+  "cmvie6fgb003pv8poeu9s7652": {
+    "slug": "lever-standing-calf-raise"
+  },
+  "cmvijhqz6003nv8gom7nxvy3i": {
+    "slug": "dumbbell-incline-fly-on-exercise-ball"
+  },
+  "cmviji12i005bv8goe0ehykuy": {
+    "slug": "jump-step-up"
+  },
+  "cmvie6ivq004dv8powv7fv0zm": {
+    "slug": "dumbbell-hammer-grip-incline-bench-row"
+  },
+  "cmvijh9oq000zv8goa2xekxn0": {
+    "slug": "band-straight-back-seated-row"
+  },
+  "cmviskdxg0003v8kse6jrroa7": {
+    "slug": "otis-ups"
+  },
+  "cmvijh41z0003v8gofi382fry": {
+    "slug": "band-bent-over-rear-lateral-raise"
+  },
+  "cmvijh4qw0007v8goyj9xuntp": {
+    "slug": "band-high-fly"
+  },
+  "cmvijh78p000lv8gosuv9un2a": {
+    "slug": "band-overhead-triceps-extension"
+  },
+  "cmvijh7kz000nv8go0bl34i3u": {
+    "slug": "band-pull-through"
+  },
+  "cmvijh8m9000tv8goz50h3kld": {
+    "slug": "band-standing-crunch"
+  },
+  "cmvisih7q000tv8hcx3ehy99j": {
+    "slug": "lever-reverse-t-bar-row"
+  },
+  "cmvisiic30011v8hchdrn3rfk": {
+    "slug": "lever-seated-reverse-fly"
+  },
+  "cmvisinha0021v8hcz3a5d5xc": {
+    "slug": "stretching-hip-extension-stretch"
+  },
+  "cmvijhlip002vv8go5i0r53cf": {
+    "slug": "crunch-floor-female"
+  },
+  "cmvisiq7j002jv8hcngh4tyvp": {
+    "slug": "stretching-neck-side-stretch"
+  },
+  "cmvijhhkh0025v8goejkhu86m": {
+    "slug": "cable-standing-one-arm-triceps-extension"
+  },
+  "cmvijhknq002pv8go21bdehfi": {
+    "slug": "close-feet-leg-press"
+  },
+  "cmvijhn9n0037v8gooy6e0f1u": {
+    "slug": "dumbbell-bar-grip-sumo-squat"
+  },
+  "cmvie6jv3004jv8po6xk1dymu": {
+    "slug": "band-standing-rear-delt-row"
+  },
+  "cmvie61ng0011v8potypeh1mx": {
+    "slug": "smith-seated-shoulder-press"
+  },
+  "cmvisiwnp003rv8hcfz7n7iiu": {
+    "slug": "stretching-standing-reach-up-back-rotation-stretch"
+  },
+  "cmviski9u000xv8ksml91vlnr": {
+    "slug": "squat"
+  },
+  "cmvie6k63004lv8po1erlyzva": {
+    "slug": "close-grip-push-ups"
+  },
+  "cmvie63rl001fv8po947ou30w": {
+    "slug": "dumbbell-seated-kickback"
+  },
+  "cmviskehs0007v8ks4dhvtl9c": {
+    "slug": "rear-decline-bridge"
+  },
+  "cmvie6kfs004nv8posznopusb": {
+    "slug": "lever-leg-extension"
+  },
+  "cmvijhr9p003pv8gomroe2dld": {
+    "slug": "dumbbell-incline-hammer-curl"
+  },
+  "cmvie64bv001jv8posi0pouvm": {
+    "slug": "dumbbell-stiff-leg-deadlift"
+  },
+  "cmvisinri0023v8hc20audzmx": {
+    "slug": "stretching-hip-flexor-and-quad-stretch"
+  },
+  "cmvie65yz001vv8pobri18ejd": {
+    "slug": "dumbbell-fly"
+  },
+  "cmvijhsh6003xv8go0ctsngcx": {
+    "slug": "dumbbell-incline-triceps-extension"
+  },
+  "cmvie66sr0021v8pohirn1zen": {
+    "slug": "dumbbell-goblet-squat"
+  },
+  "cmvie6kqk004pv8pokgchgw35": {
+    "slug": "band-seated-leg-extension"
+  },
+  "cmvie6905002fv8po9nbjk7ye": {
+    "slug": "dumbbell-seated-neutral-wrist-curl"
+  },
+  "cmvie6lwr004xv8po0ybhem2n": {
+    "slug": "45-degree-hyperextension"
+  },
+  "cmvie69ts002lv8pomnwkqmpc": {
+    "slug": "chin-ups-narrow-parallel-grip"
+  },
+  "cmvisihhr000vv8hci6dy41pw": {
+    "slug": "lever-seated-crunch-1"
+  },
+  "cmvie6a3e002nv8poy3sxgowi": {
+    "slug": "band-assisted-pull-up"
+  },
+  "cmviji3w3005rv8gocbtf2h9s": {
+    "slug": "lever-lateral-raise"
+  },
+  "cmvie6acv002pv8pout1qi70v": {
+    "slug": "bench-pull-ups"
+  },
+  "cmvie6m74004zv8pofbv6nks0": {
+    "slug": "lever-reverse-hyperextension"
+  },
+  "cmvie6amj002rv8po6gaa6p0k": {
+    "slug": "pull-up-shoulder-grip"
+  },
+  "cmviskf2i000bv8ksc63pd08s": {
+    "slug": "reverse-grip-machine-lat-pulldown"
+  },
+  "cmvijh5t2000dv8gobuhi8wo9": {
+    "slug": "band-kneeling-one-arm-pulldown"
+  },
+  "cmvisil9i001lv8hcbv4huuep": {
+    "slug": "stretching-chin-to-chest-stretch"
+  },
+  "cmviji46j005tv8go6m8v2824": {
+    "slug": "lever-lying-chest-press"
+  },
+  "cmvisid2w0001v8hc5hq031j2": {
+    "slug": "45-degree-bycicle-twisting-crunch-1"
+  },
+  "cmvisidl10003v8hcmy0402ch": {
+    "slug": "barbell-bench-press"
+  },
+  "cmvisidve0005v8hcvlxzly5k": {
+    "slug": "cable-standing-lift"
+  },
+  "cmvisieg60009v8hcng7dh9mk": {
+    "slug": "decline-dumbbell-bench-press-45-degree"
+  },
+  "cmvisio2l0025v8hci7boh7u8": {
+    "slug": "stretching-hip-flexor-stretch-rear-foot-elevated"
+  },
+  "cmvisioh60027v8hcwsudlg9i": {
+    "slug": "stretching-iron-cross-stretch"
+  },
+  "cmvisif0e000dv8hc272budv6": {
+    "slug": "dumbbell-incline-bench-press"
+  },
+  "cmvisiorr0029v8hc564nkuae": {
+    "slug": "stretching-knee-raise"
+  },
+  "cmvisifac000fv8hcqj8y2wv9": {
+    "slug": "dumbbell-one-arm-lateral-raise"
+  },
+  "cmvisip2i002bv8hc9wop3ff2": {
+    "slug": "stretching-kneeling-back-rotation-stretch"
+  },
+  "cmvisipce002dv8hc6kgz1whv": {
+    "slug": "stretching-kneeling-lat-stretch"
+  },
+  "cmviskfc6000dv8ksuf6swm1y": {
+    "slug": "ring-high-row"
+  },
+  "cmvisifk9000hv8hc7fluwes9": {
+    "slug": "dumbbell-prone-incline-curl"
+  },
+  "cmvisig3t000lv8hcg14b0n1r": {
+    "slug": "incline-push-ups"
+  },
+  "cmviskggw000lv8ksmiyydu8j": {
+    "slug": "sit-up"
+  },
+  "cmviskgtr000nv8ksw84mqv8b": {
+    "slug": "sit-up-on-exercise-ball"
+  },
+  "cmvisige2000nv8hczj9i38sv": {
+    "slug": "lever-back-extension"
+  },
+  "cmvisipme002fv8hc8zbhpi76": {
+    "slug": "stretching-kneeling-triceps-extension"
+  },
+  "cmvisiqrg002nv8hcosqu4ycm": {
+    "slug": "stretching-plyo-side-lunge-stretch"
+  },
+  "cmvisiqhi002lv8hcv823ok4b": {
+    "slug": "stretching-peroneals-stretch"
+  },
+  "cmvisir19002pv8hchlgopxkh": {
+    "slug": "stretching-quadriceps-lying-stretch"
+  },
+  "cmvisirvl002vv8hcuxhfa67x": {
+    "slug": "stretching-runners-stretch"
+  },
+  "cmvisis5h002xv8hc49tz2umq": {
+    "slug": "stretching-seated-lower-back-stretch"
+  },
+  "cmvisisfw002zv8hc08dz3065": {
+    "slug": "stretching-seated-shoulder-flexor-depresor-retractor"
+  },
+  "cmvisisqa0031v8hc7g11em9l": {
+    "slug": "stretching-seated-twist-straight-arm"
+  },
+  "cmviskho6000tv8ksrr9yp642": {
+    "slug": "smith-calf-raise"
+  },
+  "cmvisitay0035v8hc353me0tx": {
+    "slug": "stretching-side-wrist-pull-stretch"
+  },
+  "cmviskhz0000vv8ksw6y3aoab": {
+    "slug": "spell-caster"
+  },
+  "cmviskitg0011v8ks0n0fen1t": {
+    "slug": "stretching-adductor-stretch"
+  },
+  "cmviskjdl0015v8kszwh5ecgq": {
+    "slug": "stretching-band-warm-up-shoulder-stretch"
+  },
+  "cmviskj3j0013v8ksw7i452a5": {
+    "slug": "stretching-all-fours-squad-stretch"
+  }
+}
