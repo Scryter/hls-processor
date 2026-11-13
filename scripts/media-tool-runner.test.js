@@ -17,7 +17,7 @@ test('runs media binaries without inheriting API and storage credentials', () =>
     STRIPE_SECRET_KEY: 'stripe-secret',
   }
 
-  executarFerramenta('ffmpeg', ['-i', '/tmp/input ; harmless.mp4'], { stdio: 'inherit' }, (...args) => {
+  executarFerramenta('ffmpeg', ['-i', '/tmp/input ; harmless.mp4'], { stdio: 'inherit', shell: true }, (...args) => {
     chamada = args
     return Buffer.from('ok')
   }, origem)
@@ -25,6 +25,7 @@ test('runs media binaries without inheriting API and storage credentials', () =>
   assert.equal(chamada[0], 'ffmpeg')
   assert.deepEqual(chamada[1], ['-i', '/tmp/input ; harmless.mp4'])
   assert.equal(chamada[2].stdio, 'inherit')
+  assert.equal(chamada[2].shell, false)
   assert.deepEqual(chamada[2].env, { PATH: '/usr/bin:/bin', HOME: os.tmpdir(), TMPDIR: os.tmpdir() })
 })
 

@@ -13,7 +13,7 @@ function executarFerramenta(nome, argumentos, opcoes = {}, executor = execFileSy
     HOME: os.tmpdir(),
     TMPDIR: os.tmpdir(),
   }
-  return executor(nome, argumentos, { ...opcoes, env: ambiente })
+  return executor(nome, argumentos, { ...opcoes, shell: false, env: ambiente })
 }
 
 function executarFfmpeg(argumentos, opcoes = {}) {
