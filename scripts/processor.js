@@ -19,7 +19,7 @@
  */
 'use strict'
 
-const { execSync, execFileSync } = require('child_process')
+const { executarFfmpeg, executarFfprobe } = require('./media-tool-runner')
 const { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
 const fs   = require('fs')
 const path = require('path')
@@ -265,8 +265,8 @@ function buildMasterPlaylist(variants) {
 
 function probeHeight(mp4Path) {
                 try {
-                                            const out = execSync(
-                                                                                        `ffprobe -v error -select_streams v:0 -show_entries stream=height -of csv=p=0 "${mp4Path}"`,
+                                            const out = executarFfprobe(
+                                                                                        ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', mp4Path],
                                                     { encoding: 'utf8' }
                                                                         ).trim()
                                             const h = parseInt(out)
@@ -301,11 +301,11 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
 
                                             await progress(5)
                                             console.log(`  camera Generating thumbnail...`)
-                                            execSync(['ffmpeg', '-y', '-i', `"${mp4Path}"`, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', `"${thumbPath}"`].join(' '), { stdio: 'inherit' })
+                                            executarFfmpeg(['-y', '-i', mp4Path, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', thumbPath], { stdio: 'inherit' })
 
                                             await progress(15)
                                             console.log(`  movie Generating teaser (10s preview)...`)
-                                            execSync(['ffmpeg', '-y', '-i', `"${mp4Path}"`, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', `"${teaserPath}"`].join(' '), { stdio: 'inherit' })
+                                            executarFfmpeg(['-y', '-i', mp4Path, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', teaserPath], { stdio: 'inherit' })
 
                                             await progress(23)
                                             const originalHeight = probeHeight(mp4Path)
@@ -323,7 +323,7 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                                                                                         const hlsDir = path.join(tmpDir, 'hls', `${height}p`)
                                                                                         fs.mkdirSync(hlsDir, { recursive: true })
                                                                                         console.log(`  signal Generating HLS ${height}p...`)
-                                                                                        execFileSync('ffmpeg', [
+                                                                                        executarFfmpeg([
                                                                                                                     '-y', '-i', mp4Path,
                                                                                                                     '-profile:v', 'baseline', '-level', '3.0',
                                                                                                                     '-vf', `scale='min(${cfg.width},iw)':trunc(ow/a/2)*2`,
