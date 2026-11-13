@@ -16,6 +16,10 @@ permissions:
 jobs:
   process-hls:
     runs-on: ubuntu-latest
+    # Avoid sending production secrets when workflow_dispatch targets another ref.
+    # The PRD environment must also be restricted to main in repository settings;
+    # that environment policy is the enforcement boundary if this file changes.
+    if: github.ref == 'refs/heads/main'
     environment: PRD
     timeout-minutes: 30
 
