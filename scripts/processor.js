@@ -263,11 +263,11 @@ function buildMasterPlaylist(variants) {
 
 // --- Detect original resolution -----------------------------------------------
 
-function probeHeight(mp4Path) {
+function probeHeight(mp4Path, tmpDir) {
                 try {
                                             const out = executarFfprobe(
                                                                                         ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', mp4Path],
-                                                    { encoding: 'utf8' }
+                                                    { cwd: tmpDir, encoding: 'utf8' }
                                                                         ).trim()
                                             const h = parseInt(out)
                                             return Number.isFinite(h) && h > 0 ? h : 9999
@@ -301,14 +301,14 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
 
                                             await progress(5)
                                             console.log(`  camera Generating thumbnail...`)
-                                            executarFfmpeg(['-y', '-i', mp4Path, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', thumbPath], { stdio: 'inherit' })
+                                            executarFfmpeg(['-y', '-i', mp4Path, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', thumbPath], { cwd: tmpDir, stdio: 'inherit' })
 
                                             await progress(15)
                                             console.log(`  movie Generating teaser (10s preview)...`)
-                                            executarFfmpeg(['-y', '-i', mp4Path, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', teaserPath], { stdio: 'inherit' })
+                                            executarFfmpeg(['-y', '-i', mp4Path, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', teaserPath], { cwd: tmpDir, stdio: 'inherit' })
 
                                             await progress(23)
-                                            const originalHeight = probeHeight(mp4Path)
+                                            const originalHeight = probeHeight(mp4Path, tmpDir)
                                             console.log(`  zoom Original resolution: ${originalHeight}p`)
                                             let targetHeights = requestedHeights.filter((height) => height <= originalHeight)
                                             if (targetHeights.length === 0) {
@@ -332,7 +332,7 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                                                                                                                     '-hls_time', '10', '-hls_playlist_type', 'vod',
                                                                                                                     '-hls_segment_filename', path.join(hlsDir, 'seg%03d.ts'),
                                                                                                                     path.join(hlsDir, 'playlist.m3u8'),
-                                                                                        ], { stdio: 'inherit' })
+                                                                                        ], { cwd: tmpDir, stdio: 'inherit' })
                                             }
 
                                             await progress(75)

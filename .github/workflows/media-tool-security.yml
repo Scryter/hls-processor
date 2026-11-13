@@ -20,3 +20,18 @@ jobs:
           node-version: '24'
       - name: Test credential isolation for media tools
         run: node --test scripts/media-tool-runner.test.js
+      - name: Build isolated media tools image
+        run: docker build --pull --file Dockerfile.media-tools --tag trainlab-media-tools:test .
+      - name: Smoke-test media sandbox without network
+        run: |
+          mkdir -p "$RUNNER_TEMP/processor-smoke"
+          chmod 700 "$RUNNER_TEMP/processor-smoke"
+          docker run --rm --network=none --read-only --cap-drop=ALL \
+            --security-opt=no-new-privileges:true --pids-limit=128 --memory=4g --cpus=2 \
+            --user "$(id -u):$(id -g)" \
+            --tmpfs /tmp:rw,nosuid,nodev,noexec,size=256m \
+            --mount "type=bind,src=$RUNNER_TEMP/processor-smoke,dst=/work" \
+            --workdir /work trainlab-media-tools:test \
+            ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=black:s=16x16:d=1 \
+              -c:v libx264 -pix_fmt yuv420p /work/smoke.mp4
+          test -s "$RUNNER_TEMP/processor-smoke/smoke.mp4"
