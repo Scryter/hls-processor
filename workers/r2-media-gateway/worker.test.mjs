@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 import { handleRequest, signPlaybackToken } from './worker.mjs';
 
 const secret = 'unit-test-only-secret-with-32-bytes-minimum';
@@ -72,6 +73,14 @@ test('accepts a ten-minute token with small backend clock skew', async () => {
   const issuedAt = now + 1;
   const tokenWithSkew = await signPlaybackToken({ aud: 'trainlab-r2-hls', iat: issuedAt, exp: issuedAt + 600, prefixes: [prefix], modelKeys: [] }, secret);
   const response = await handleRequest(request(`https://media.example/${prefix}hls/master.m3u8?__tl_playback=${tokenWithSkew}`), env, now);
+  assert.equal(response.status, 200);
+});
+
+test('accepts the Node HMAC/base64url token format emitted by the backend', async () => {
+  const env = await envFor({ [`${prefix}hls/master.m3u8`]: '#EXTM3U\n' });
+  const payload = Buffer.from(JSON.stringify({ aud: 'trainlab-r2-hls', iat: now, exp: now + 600, prefixes: [prefix], modelKeys: [] })).toString('base64url');
+  const signature = createHmac('sha256', secret).update(payload).digest('base64url');
+  const response = await handleRequest(request(`https://media.example/${prefix}hls/master.m3u8?__tl_playback=${payload}.${signature}`), env, now);
   assert.equal(response.status, 200);
 });
 

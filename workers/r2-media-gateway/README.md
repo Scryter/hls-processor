@@ -4,7 +4,7 @@ This Worker serves only authorized HLS derivatives, preview assets, and 3D files
 
 The HLS processor accepts private trainer sources only in the five-segment per-file UUID layout and only when the sanitized filename ends in one of `_mp4`, `_mov`, `_avi`, `_mkv`, or `_webm` (the upload API converts `treino.mp4` to `treino_mp4`). It restores the supported suffix for local FFmpeg input. Legacy shared-batch paths are deliberately skipped; migrate them before cutover rather than letting processing overwrite shared derivatives and delete a source that the Worker will reject.
 
-The bearer token is carried in the HLS request query string so native HLS players can fetch child playlists and segments. Responses set `Referrer-Policy: no-referrer` and `Cache-Control: private, no-store`; production CDN, Worker, analytics, and application access logs must also omit or redact the `__tl_playback` query parameter. Do not enable request logging that records full URLs for this route.
+The bearer token is carried in the HLS request query string so native HLS players can fetch child playlists and segments. The backend signs `iat` and `exp`; the Worker accepts at most 600 seconds between them and permits up to 30 seconds of future `iat` clock skew. Responses set `Referrer-Policy: no-referrer` and `Cache-Control: private, no-store`; production CDN, Worker, analytics, and application access logs must also omit or redact the `__tl_playback` query parameter. Do not enable request logging that records full URLs for this route.
 
 ## Local checks
 
