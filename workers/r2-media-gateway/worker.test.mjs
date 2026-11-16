@@ -40,7 +40,7 @@ async function envFor(objects) {
 }
 
 async function token(prefixes = [prefix], exp = now + 600) {
-  return signPlaybackToken({ aud: 'trainlab-r2-hls', exp, prefixes, modelKeys: [] }, secret);
+  return signPlaybackToken({ aud: 'trainlab-r2-hls', iat: now, exp, prefixes, modelKeys: [] }, secret);
 }
 
 function request(url, { method = 'GET', origin = 'https://trainlab.com.br', headers = {} } = {}) {
@@ -57,6 +57,14 @@ test('requires a valid signed token scoped to the requested upload', async () =>
   const expired = await token([prefix], now);
   const expiredResponse = await handleRequest(request(`https://media.example/${prefix}hls/master.m3u8?__tl_playback=${expired}`), env, now);
   assert.equal(expiredResponse.status, 403);
+});
+
+test('rejects playback tokens with a lifetime greater than ten minutes', async () => {
+  const env = await envFor({ [`${prefix}hls/master.m3u8`]: '#EXTM3U\n' });
+  const longLived = await signPlaybackToken({ aud: 'trainlab-r2-hls', iat: now, exp: now + 601, prefixes: [prefix], modelKeys: [] }, secret);
+  const response = await handleRequest(request(`https://media.example/${prefix}hls/master.m3u8?__tl_playback=${longLived}`), env, now);
+  assert.equal(response.status, 403);
+  assert.equal(env.MEDIA_BUCKET.calls.length, 0);
 });
 
 test('rejects legacy shared-batch prefixes and tokens for a sibling file directory', async () => {
@@ -132,7 +140,7 @@ test('fails closed for non-media objects and unsupported methods', async () => {
 test('allows only explicitly authorized 3D assets from the private upload scope', async () => {
   const key = `${prefix}model.glb`;
   const env = await envFor({ [key]: 'fake-glb' });
-  const playbackToken = await signPlaybackToken({ aud: 'trainlab-r2-hls', exp: now + 600, prefixes: [prefix], modelKeys: [key] }, secret);
+  const playbackToken = await signPlaybackToken({ aud: 'trainlab-r2-hls', iat: now, exp: now + 600, prefixes: [prefix], modelKeys: [key] }, secret);
   const response = await handleRequest(request(`https://media.example/${key}?__tl_playback=${playbackToken}`), env, now);
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('Content-Type'), 'model/gltf-binary');

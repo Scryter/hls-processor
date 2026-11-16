@@ -100,7 +100,10 @@ async function verifyToken(token, secret, objectKey, nowSeconds) {
     const expected = new Uint8Array(await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(pieces[0])));
     if (!equalBytes(signature, expected)) return null;
     const claims = JSON.parse(new TextDecoder().decode(payloadBytes));
-    if (claims.aud !== 'trainlab-r2-hls' || !Number.isInteger(claims.exp) || claims.exp <= nowSeconds) return null;
+    if (claims.aud !== 'trainlab-r2-hls'
+      || !Number.isInteger(claims.iat) || claims.iat > nowSeconds + 30
+      || !Number.isInteger(claims.exp) || claims.exp <= nowSeconds || claims.exp <= claims.iat
+      || claims.exp - claims.iat > 600 || claims.exp - nowSeconds > 600) return null;
     if (!Array.isArray(claims.prefixes) || claims.prefixes.length < 1 || claims.prefixes.length > 5 || !claims.prefixes.every(validPrefix)) return null;
     if (!Array.isArray(claims.modelKeys) || claims.modelKeys.length > 10 || !claims.modelKeys.every((key) => validModelKey(key, claims.prefixes))) return null;
     if (claims.nbf !== undefined && (!Number.isInteger(claims.nbf) || claims.nbf > nowSeconds + 30)) return null;
