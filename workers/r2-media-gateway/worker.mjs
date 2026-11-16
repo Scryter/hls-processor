@@ -158,6 +158,16 @@ async function getObject(bucket, key, request) {
   const range = parseRange(request.headers.get('Range'), metadata.size);
   if (range?.invalid) return new Response('Invalid range', { status: 416, headers: { 'Content-Range': `bytes */${metadata.size}` } });
   if (range?.unsatisfiable) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${metadata.size}` } });
+  if (request.method === 'HEAD') {
+    const headers = new Headers({
+      'Content-Type': contentType(key, metadata),
+      'Accept-Ranges': 'bytes',
+      'Content-Length': String(range ? range.end - range.start + 1 : metadata.size),
+    });
+    if (metadata.httpEtag) headers.set('ETag', metadata.httpEtag);
+    if (range) headers.set('Content-Range', `bytes ${range.start}-${range.end}/${metadata.size}`);
+    return new Response(null, { status: range ? 206 : 200, headers });
+  }
   const options = range ? { range: { offset: range.start, length: range.end - range.start + 1 } } : undefined;
   const object = await bucket.get(key, options);
   if (!object) return new Response('Not found', { status: 404 });
@@ -168,8 +178,7 @@ async function getObject(bucket, key, request) {
   if (object.httpEtag) headers.set('ETag', object.httpEtag);
   if (range) headers.set('Content-Range', `bytes ${range.start}-${range.end}/${metadata.size}`);
   headers.set('Content-Length', String(range ? range.end - range.start + 1 : metadata.size));
-  const body = request.method === 'HEAD' ? null : object.body;
-  return new Response(body, { status: range ? 206 : 200, headers });
+  return new Response(object.body, { status: range ? 206 : 200, headers });
 }
 
 function rewritePlaylist(text, manifestUrl, token, allowedPrefixes) {

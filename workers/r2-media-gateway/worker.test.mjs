@@ -134,6 +134,19 @@ test('preserves byte ranges for video segments', async () => {
   assert.equal(response.headers.get('Referrer-Policy'), 'no-referrer');
 });
 
+test('answers authorized HEAD requests from object metadata without reading the object body', async () => {
+  const key = `${prefix}model.glb`;
+  const env = await envFor({ [key]: 'fake-glb' });
+  const playbackToken = await signPlaybackToken({ aud: 'trainlab-r2-hls', iat: now, exp: now + 600, prefixes: [prefix], modelKeys: [key] }, secret);
+
+  const response = await handleRequest(request(`https://media.example/${key}?__tl_playback=${playbackToken}`, { method: 'HEAD' }), env, now);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('Content-Length'), '8');
+  assert.equal(await response.text(), '');
+  assert.deepEqual(env.MEDIA_BUCKET.calls.map(([method]) => method), ['head']);
+});
+
 test('allows the permitted origin and rejects preflight from other origins', async () => {
   const env = await envFor({});
   for (const origin of ['https://trainlab.com.br', 'https://www.trainlab.com.br', 'https://trainlab-frontend.vercel.app']) {
