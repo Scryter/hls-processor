@@ -67,6 +67,14 @@ test('rejects playback tokens with a lifetime greater than ten minutes', async (
   assert.equal(env.MEDIA_BUCKET.calls.length, 0);
 });
 
+test('accepts a ten-minute token with small backend clock skew', async () => {
+  const env = await envFor({ [`${prefix}hls/master.m3u8`]: '#EXTM3U\n' });
+  const issuedAt = now + 1;
+  const tokenWithSkew = await signPlaybackToken({ aud: 'trainlab-r2-hls', iat: issuedAt, exp: issuedAt + 600, prefixes: [prefix], modelKeys: [] }, secret);
+  const response = await handleRequest(request(`https://media.example/${prefix}hls/master.m3u8?__tl_playback=${tokenWithSkew}`), env, now);
+  assert.equal(response.status, 200);
+});
+
 test('rejects legacy shared-batch prefixes and tokens for a sibling file directory', async () => {
   const objects = {
     [`${prefix}hls/master.m3u8`]: '#EXTM3U\n',
