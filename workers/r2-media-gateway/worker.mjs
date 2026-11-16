@@ -1,6 +1,9 @@
 const PRIVATE_ROOT = 'exercises';
+const PRIVATE_IMAGE_ROOT = 'exercise-images';
+const PUBLIC_ROOTS = ['free-exercise/'];
 const PLAYBACK_PARAM = '__tl_playback';
 const MAX_TOKEN_BYTES = 4096;
+const MAX_PLAYLIST_BYTES = 1024 * 1024;
 
 function decodePath(pathname) {
   try {
@@ -18,11 +21,19 @@ export function isPrivateTrainerObjectKey(key) {
 }
 
 function isGatewayObjectKey(key) {
+  if (isPrivateExerciseImageKey(key)) return true;
   if (!isPrivateTrainerObjectKey(key)) return false;
   const relative = key.split('/').slice(4).join('/');
   return (relative.startsWith('hls/') && /\.(m3u8|ts|m4s|mp4|key|aac)$/i.test(relative))
     || relative === 'thumb.jpg' || relative === 'teaser.mp4'
     || /\.(glb|gltf|fbx)$/i.test(relative);
+}
+
+function isPrivateExerciseImageKey(key) {
+  const parts = typeof key === 'string' ? key.split('/') : [];
+  return parts.length === 3 && parts[0] === PRIVATE_IMAGE_ROOT
+    && /^[A-Za-z0-9_-]{1,128}$/.test(parts[1])
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(jpg|png|webp|gif|avif)$/i.test(parts[2]);
 }
 
 function parseAllowedOrigins(value) {
@@ -104,10 +115,15 @@ async function verifyToken(token, secret, objectKey, nowSeconds) {
       || !Number.isInteger(claims.iat) || claims.iat > nowSeconds + 30
       || !Number.isInteger(claims.exp) || claims.exp <= nowSeconds || claims.exp <= claims.iat
       || claims.exp - claims.iat > 600) return null;
-    if (!Array.isArray(claims.prefixes) || claims.prefixes.length < 1 || claims.prefixes.length > 5 || !claims.prefixes.every(validPrefix)) return null;
+    if (!Array.isArray(claims.prefixes) || claims.prefixes.length > 5 || !claims.prefixes.every(validPrefix)) return null;
     if (!Array.isArray(claims.modelKeys) || claims.modelKeys.length > 10 || !claims.modelKeys.every((key) => validModelKey(key, claims.prefixes))) return null;
+    if (!Array.isArray(claims.objectKeys) || claims.objectKeys.length > 10 || !claims.objectKeys.every(isPrivateExerciseImageKey)) return null;
+    if (claims.prefixes.length === 0 && claims.objectKeys.length === 0) return null;
     if (claims.nbf !== undefined && (!Number.isInteger(claims.nbf) || claims.nbf > nowSeconds + 30)) return null;
-    if (!claims.prefixes.some((prefix) => objectKey.startsWith(prefix))) return null;
+    const inPrefix = claims.prefixes.some((prefix) => objectKey.startsWith(prefix));
+    const exactObject = claims.objectKeys.includes(objectKey);
+    if (!inPrefix && !exactObject) return null;
+    if (isPrivateExerciseImageKey(objectKey) && !exactObject) return null;
     if (/\.(glb|gltf|fbx)$/i.test(objectKey) && !claims.modelKeys.includes(objectKey)) return null;
     return claims;
   } catch { return null; }
@@ -117,6 +133,7 @@ function privateResponse(body, status, origin, allowedOrigins, extraHeaders = {}
   const headers = new Headers({
     'Cache-Control': 'private, no-store, max-age=0',
     'Referrer-Policy': 'no-referrer',
+    'X-Content-Type-Options': 'nosniff',
     ...extraHeaders,
   });
   for (const [name, value] of corsHeaders(origin, allowedOrigins)) headers.set(name, value);
@@ -139,17 +156,52 @@ function parseRange(value, size) {
   return { start, end: Math.min(end, size - 1) };
 }
 
-function contentType(key, metadata) {
-  if (metadata?.httpMetadata?.contentType) return metadata.httpMetadata.contentType;
+function contentType(key) {
   if (key.toLowerCase().endsWith('.m3u8')) return 'application/vnd.apple.mpegurl';
   if (key.toLowerCase().endsWith('.ts')) return 'video/mp2t';
+  if (key.toLowerCase().endsWith('.m4s')) return 'video/iso.segment';
   if (key.toLowerCase().endsWith('.mp4')) return 'video/mp4';
+  if (key.toLowerCase().endsWith('.webm')) return 'video/webm';
+  if (key.toLowerCase().endsWith('.aac')) return 'audio/aac';
   if (key.toLowerCase().endsWith('.jpg') || key.toLowerCase().endsWith('.jpeg')) return 'image/jpeg';
+  if (key.toLowerCase().endsWith('.png')) return 'image/png';
   if (key.toLowerCase().endsWith('.webp')) return 'image/webp';
+  if (key.toLowerCase().endsWith('.gif')) return 'image/gif';
+  if (key.toLowerCase().endsWith('.avif')) return 'image/avif';
   if (key.toLowerCase().endsWith('.glb')) return 'model/gltf-binary';
   if (key.toLowerCase().endsWith('.gltf')) return 'model/gltf+json';
   if (key.toLowerCase().endsWith('.fbx')) return 'application/octet-stream';
   return 'application/octet-stream';
+}
+
+async function readPlaylistLimited(response) {
+  const length = Number(response.headers.get('Content-Length'));
+  if (!Number.isSafeInteger(length) || length < 0 || length > MAX_PLAYLIST_BYTES) throw new Error('playlist exceeds size limit');
+  const reader = response.body?.getReader();
+  if (!reader) throw new Error('playlist body is missing');
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_PLAYLIST_BYTES) {
+        await reader.cancel().catch(() => {});
+        throw new Error('playlist exceeds size limit');
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
 }
 
 async function getObject(bucket, key, request) {
@@ -160,9 +212,10 @@ async function getObject(bucket, key, request) {
   if (range?.unsatisfiable) return new Response(null, { status: 416, headers: { 'Content-Range': `bytes */${metadata.size}` } });
   if (request.method === 'HEAD') {
     const headers = new Headers({
-      'Content-Type': contentType(key, metadata),
+      'Content-Type': contentType(key),
       'Accept-Ranges': 'bytes',
       'Content-Length': String(range ? range.end - range.start + 1 : metadata.size),
+      'X-Content-Type-Options': 'nosniff',
     });
     if (metadata.httpEtag) headers.set('ETag', metadata.httpEtag);
     if (range) headers.set('Content-Range', `bytes ${range.start}-${range.end}/${metadata.size}`);
@@ -172,8 +225,9 @@ async function getObject(bucket, key, request) {
   const object = await bucket.get(key, options);
   if (!object) return new Response('Not found', { status: 404 });
   const headers = new Headers({
-    'Content-Type': contentType(key, object),
+    'Content-Type': contentType(key),
     'Accept-Ranges': 'bytes',
+    'X-Content-Type-Options': 'nosniff',
   });
   if (object.httpEtag) headers.set('ETag', object.httpEtag);
   if (range) headers.set('Content-Range', `bytes ${range.start}-${range.end}/${metadata.size}`);
@@ -218,10 +272,22 @@ export async function handleRequest(request, env, nowSeconds = Math.floor(Date.n
   if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method not allowed', { status: 405, headers: { Allow: 'GET, HEAD, OPTIONS', 'Cache-Control': 'no-store' } });
   if (!key) return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
 
-  // This Worker is intended for the dedicated media hostname. Fail closed for
-  // every object outside the HLS derivatives and their two preview assets.
+  // Keep the complete public hostname behind this Worker. A prefix-only route
+  // can miss encoded path separators before the Worker gets a chance to reject
+  // them, allowing the public R2 origin to interpret the same path differently.
+  const isPrivate = key === PRIVATE_ROOT || key.startsWith(`${PRIVATE_ROOT}/`)
+    || key === PRIVATE_IMAGE_ROOT || key.startsWith(`${PRIVATE_IMAGE_ROOT}/`);
+  if (!isPrivate) {
+    if (!PUBLIC_ROOTS.some((prefix) => key.startsWith(prefix))) {
+      return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+    }
+    const object = await getObject(env.MEDIA_BUCKET, key, request);
+    const headers = new Headers(object.headers);
+    for (const [name, value] of corsHeaders(origin, allowedOrigins)) headers.set(name, value);
+    headers.set('Cache-Control', object.ok ? 'public, max-age=3600' : 'no-store');
+    return new Response(object.body, { status: object.status, headers });
+  }
   if (!isGatewayObjectKey(key)) return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
-  const isPrivate = true;
   let claims = null;
   const token = url.searchParams.get(PLAYBACK_PARAM);
   if (isPrivate) {
@@ -233,7 +299,7 @@ export async function handleRequest(request, env, nowSeconds = Math.floor(Date.n
   const upstream = await getObject(env.MEDIA_BUCKET, key, request);
   if (isPrivate && request.method === 'GET' && key.toLowerCase().endsWith('.m3u8') && upstream.ok) {
     try {
-      const body = rewritePlaylist(await upstream.text(), request.url, token, claims.prefixes);
+      const body = rewritePlaylist(await readPlaylistLimited(upstream), request.url, token, claims.prefixes);
       return privateResponse(body, upstream.status, origin, allowedOrigins, {
         'Content-Type': 'application/vnd.apple.mpegurl; charset=utf-8',
       });

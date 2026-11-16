@@ -7,7 +7,7 @@ workers_dev = false
 enabled = false
 
 [[routes]]
-pattern = "r2.hidrasistemas.com.br/exercises/*"
+pattern = "r2.hidrasistemas.com.br/*"
 zone_name = "hidrasistemas.com.br"
 
 [[r2_buckets]]
