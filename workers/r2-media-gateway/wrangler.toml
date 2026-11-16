@@ -1,0 +1,11 @@
+name = "trainlab-r2-media-gateway-test"
+main = "worker.mjs"
+compatibility_date = "2026-11-16"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "trainlab-security-audit-test"
+
+[vars]
+ALLOWED_ORIGINS = "https://trainlab.com.br,https://www.trainlab.com.br,https://trainlab-frontend.vercel.app,http://localhost:3000"

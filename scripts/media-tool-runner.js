@@ -4,6 +4,7 @@ const { execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
+const { assertSafeWorkspace } = require('./media-output-guard')
 
 /**
  * Builds a narrow Docker invocation for processing one untrusted media file.
@@ -74,11 +75,13 @@ function executarFerramenta(nome, argumentos, opcoes = {}, executor = execFileSy
     HOME: os.tmpdir(),
     TMPDIR: os.tmpdir(),
   }
-  return executor('docker', argumentosDoContainer, {
+  const resultado = executor('docker', argumentosDoContainer, {
     ...spawnOptions,
     shell: false,
     env: ambienteDocker,
   })
+  assertSafeWorkspace(workdir)
+  return resultado
 }
 
 function executarFfmpeg(argumentos, opcoes = {}) {

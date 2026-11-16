@@ -1,0 +1,15 @@
+name = "trainlab-r2-media-gateway-prod"
+main = "worker.mjs"
+compatibility_date = "2026-11-16"
+workers_dev = false
+
+[[routes]]
+pattern = "r2.hidrasistemas.com.br/exercises/*"
+zone_name = "hidrasistemas.com.br"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "prd-trainlab"
+
+[vars]
+ALLOWED_ORIGINS = "https://trainlab.com.br"

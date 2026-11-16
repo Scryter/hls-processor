@@ -6,6 +6,25 @@ const os = require('node:os')
 const fs = require('node:fs')
 const path = require('node:path')
 const { executarFerramenta, construirArgumentosDoContainer } = require('./media-tool-runner')
+const { authenticatedVideoUrl, toObjectKey } = require('./media-keys')
+
+test('converts app-relative media URLs to object keys for processor reconciliation', () => {
+  const key = 'exercises/trainer-1/upload-1/file-id/model.glb'
+  assert.equal(toObjectKey(`/api/backend/videos/${key}`), key)
+  assert.equal(toObjectKey(`/api/videos/${key}`), key)
+  assert.equal(toObjectKey(key), key)
+})
+
+test('accepts only the known public R2 host when converting absolute media references', () => {
+  const key = 'exercises/trainer-1/upload-1/file-id/hls/master.m3u8'
+  assert.equal(toObjectKey(`https://r2.hidrasistemas.com.br/${key}`), key)
+  assert.equal(toObjectKey(`https://r2.hidrasistemas.com.br.attacker.example/${key}`), null)
+  assert.equal(toObjectKey(`http://r2.hidrasistemas.com.br/${key}`), null)
+})
+
+test('encodes object key segments in authenticated application URLs', () => {
+  assert.equal(authenticatedVideoUrl('exercises/trainer 1/id/file/model.glb'), '/api/backend/videos/exercises/trainer%201/id/file/model.glb')
+})
 
 test('runs media tools in a networkless, read-only container with only the per-video workspace mounted', () => {
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'processor-test-'))
@@ -77,6 +96,28 @@ test('host Docker client also receives no API or storage credentials', () => {
   fs.rmSync(workdir, { recursive: true, force: true })
 })
 
+test('rejects a symbolic link planted in the shared workspace before host-side upload', () => {
+  const parent = fs.mkdtempSync(path.join(os.tmpdir(), 'processor-test-'))
+  const workdir = path.join(parent, 'processor-video')
+  const outside = path.join(parent, 'synthetic-host-file')
+  fs.mkdirSync(workdir)
+  fs.writeFileSync(outside, 'synthetic only')
+
+  assert.throws(() => executarFerramenta(
+    'ffmpeg', ['-i', path.join(workdir, 'input.mp4'), path.join(workdir, 'hls', 'secret.ts')],
+    { cwd: workdir },
+    () => {
+      fs.mkdirSync(path.join(workdir, 'hls'))
+      fs.symlinkSync(outside, path.join(workdir, 'hls', 'secret.ts'))
+      return Buffer.from('ok')
+    },
+    {},
+    { image: 'trainlab-media-tools:test', uid: 1001, gid: 1001 },
+  ), /symbolic link|link simbólico/i)
+
+  fs.rmSync(parent, { recursive: true, force: true })
+})
+
 test('preserves a usable PATH on Windows without copying unrelated variables', () => {
   let chamada
   const workdir = fs.mkdtempSync(path.join(os.tmpdir(), 'processor-test-'))
@@ -96,4 +137,23 @@ test('processor invokes media tools only through the isolated runner', () => {
 
   assert.match(source, /require\('\.\/media-tool-runner'\)/)
   assert.doesNotMatch(source, /\b(?:execSync|execFileSync|spawnSync|spawn)\s*\(/)
+})
+
+test('processor persists derived media through the authenticated API path', () => {
+  const source = fs.readFileSync(require.resolve('./processor.js'), 'utf8')
+
+  assert.match(source, /require\('\.\/media-keys'\)/)
+  assert.match(source, /url: authenticatedVideoUrl\(`\$\{folder\}hls\/master\.m3u8`\)/)
+  assert.match(source, /thumb: authenticatedVideoUrl\(`\$\{folder\}thumb\.jpg`\)/)
+  assert.doesNotMatch(source, /R2_PUBLIC_BASE/)
+  assert.doesNotMatch(source, /url:\s*`https:\/\/r2\.hidrasistemas\.com\.br/)
+})
+
+test('processor reads uploads through the no-follow workspace guard', () => {
+  const source = fs.readFileSync(require.resolve('./processor.js'), 'utf8')
+
+  assert.match(source, /require\('\.\/media-output-guard'\)/)
+  assert.match(source, /Body:\s*readRegularFile\(workspaceRoot, filePath\)/)
+  assert.doesNotMatch(source, /Body:\s*fs\.readFileSync\(filePath\)/)
+  assert.match(source, /writeFileSync\(masterTmp, buildMasterPlaylist\(variants\), \{ flag: 'wx'/)
 })
