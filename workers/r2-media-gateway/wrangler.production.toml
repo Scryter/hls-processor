@@ -3,6 +3,9 @@ main = "worker.mjs"
 compatibility_date = "2026-11-16"
 workers_dev = false
 
+[observability]
+enabled = false
+
 [[routes]]
 pattern = "r2.hidrasistemas.com.br/exercises/*"
 zone_name = "hidrasistemas.com.br"

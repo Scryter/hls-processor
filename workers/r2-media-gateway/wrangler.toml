@@ -3,6 +3,9 @@ main = "worker.mjs"
 compatibility_date = "2026-11-16"
 workers_dev = true
 
+[observability]
+enabled = false
+
 [[r2_buckets]]
 binding = "MEDIA_BUCKET"
 bucket_name = "trainlab-security-audit-test"
