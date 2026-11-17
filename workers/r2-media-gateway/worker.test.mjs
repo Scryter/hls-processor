@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { createHmac } from 'node:crypto';
 import { handleRequest, signPlaybackToken } from './worker.mjs';
 
@@ -171,6 +172,15 @@ test('allows the permitted origin and rejects preflight from other origins', asy
   }
   const bad = await handleRequest(request('https://media.example/exercises/t/u/hls/master.m3u8', { method: 'OPTIONS', origin: 'https://evil.example', headers: { 'Access-Control-Request-Method': 'GET' } }), env, now);
   assert.equal(bad.status, 403);
+});
+
+test('production Worker allowlists both verified TrainLab web domains', () => {
+  const config = readFileSync(new URL('./wrangler.production.toml', import.meta.url), 'utf8');
+  const match = /^ALLOWED_ORIGINS\s*=\s*"([^"]+)"\s*$/m.exec(config);
+  assert.ok(match, 'production config must declare ALLOWED_ORIGINS');
+  const origins = new Set(match[1].split(',').map((origin) => origin.trim()));
+  assert.ok(origins.has('https://trainlab.com.br'));
+  assert.ok(origins.has('https://www.trainlab.com.br'));
 });
 
 test('fails closed for non-media objects and unsupported methods', async () => {
