@@ -1,0 +1,27 @@
+# TrainLab private HLS gateway
+
+This Worker serves authorized HLS derivatives, preview assets, and 3D files under `exercises/<trainerId>/<uploadId>/<fileId>/`, plus exact authorized exercise-description images under `exercise-images/<trainerId>/<uuid>.<ext>`, from an R2 binding. It rejects original uploads, legacy shared-batch directories, and every unknown object; validates an HMAC playback token; rewrites every HLS child URI with that token; and supports byte ranges and allowlisted CORS. It derives response MIME types from supported file extensions and sends `X-Content-Type-Options: nosniff` instead of trusting stored R2 content types. Each uploaded video needs its own UUID directory because the processor writes HLS and preview derivatives next to the source. 3D objects and description images are additionally listed by exact key in the token.
+
+The HLS processor accepts private trainer sources only in the five-segment per-file UUID layout and only when the sanitized filename ends in one of `_mp4`, `_mov`, `_avi`, `_mkv`, or `_webm` (the upload API converts `treino.mp4` to `treino_mp4`). It restores the supported suffix for local FFmpeg input. Legacy shared-batch paths are deliberately skipped; migrate them before cutover rather than letting processing overwrite shared derivatives and delete a source that the Worker will reject.
+
+The bearer token is carried in the HLS request query string so native HLS players can fetch child playlists and segments. The backend signs `iat` and `exp`; the Worker accepts at most 600 seconds between them and permits up to 30 seconds of future `iat` clock skew. Responses set `Referrer-Policy: no-referrer` and `Cache-Control: private, no-store`. The Wrangler test and production candidates disable Worker Observability persistence. This does not govern zone-level HTTP Requests Logpush: Cloudflare documents that [`ClientRequestURI` includes the query string and `ClientRequestPath` omits it](https://developers.cloudflare.com/logs/logpush/logpush-job/datasets/account/http_requests/). Before cutover, confirm any zone Logpush jobs omit `ClientRequestURI` for this hostname (or redact the token) and keep application/analytics logging from recording `__tl_playback`.
+
+## Local checks
+
+Run the Worker unit checks with Node's built-in test runner:
+
+```sh
+node --test workers/r2-media-gateway/worker.test.mjs
+```
+
+`wrangler.toml` is deliberately bound only to the isolated `trainlab-security-audit-test` bucket. It has no route or production bucket binding. `PLAYBACK_TOKEN_SECRET` is unset by default, so private playback fails closed until configured locally.
+
+## Production rollout prerequisites
+
+The production route must cover the entire `r2.hidrasistemas.com.br/*` hostname. A prefix-only route could miss differently encoded path separators before Worker validation, while an origin may interpret those separators as `/`; the Worker must receive the request before it reaches the public R2 origin. The candidate allows public reads only under `free-exercise/`, requires a scoped token for eligible files under `exercises/`, and an exact-object token for eligible images under `exercise-images/`; all other paths return 404. The backend issues image tokens only after verifying the exact image is embedded in that exercise description and the requester can view the exercise. Video uploads are presigned directly against the R2 S3 endpoint, not this custom domain, so the catch-all route does not intercept those PUTs. The production allowlist includes both verified Vercel domains, `https://trainlab.com.br` and `https://www.trainlab.com.br`; the apex currently redirects to `www`, but both stay explicit in the gateway configuration. The review-only `wrangler.production.toml` binds `prd-trainlab`, has no playback secret, and has not been deployed.
+
+Before enabling the route, all existing trainer media in legacy shared-batch directories must be migrated to per-file UUID directories and database references updated; the candidate intentionally fails closed for legacy paths. The inventory preflight must flag folders with multiple distinct root source files as collisions: older processing wrote `hls/`, `thumb.jpg`, and `teaser.mp4` beside each source, so one source may have overwritten another's derivatives. Do not automatically copy or guess which derivative belongs to which exercise. Reprocess from a surviving original; if no original remains, require the trainer to upload the video again. Deploy against the production bucket only after reviewed migration/rollback plans, configure `PLAYBACK_TOKEN_SECRET` and exact TrainLab origins, and test with synthetic canary objects. Verify student entitlement, trainer ownership, HLS variant/segment playback, seeking, expiry, 3D preview, and denial from other origins.
+
+The default test config remains bound only to `trainlab-security-audit-test`. The separate `wrangler.production.toml` is a review-only deployment candidate; no Worker, route, secret, or frontend/backend rollout has been applied.
+
+Additional access-control prerequisite: the production cutover must also disable `r2.dev` and any other public alternate domain for the bucket. Cloudflare states that disabling one custom domain does not affect other domains or the `r2.dev` endpoint. Verify anonymous denial through every alternate endpoint after the Worker route is enabled; the full-host Worker route alone is not proof that the bucket has no other public path.

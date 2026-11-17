@@ -54,7 +54,7 @@ jobs:
       - name: Install dependencies
         if: ${{ inputs.verifyConfigurationOnly != true }}
         # node-fetch removed - supported Node.js has native fetch; @aws-sdk/client-s3 only
-        run: npm install --omit=dev
+        run: npm ci --omit=dev
 
       # Untrusted videos are decoded in a networkless, credential-free container.
       - name: Build isolated media tools image

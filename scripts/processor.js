@@ -20,13 +20,19 @@
 'use strict'
 
 const { executarFfmpeg, executarFfprobe } = require('./media-tool-runner')
+const { readRegularFile } = require('./media-output-guard')
+const { authenticatedVideoUrl, toObjectKey } = require('./media-keys')
+const { readOriginalHeight } = require('./media-validation')
+const { resolveSources } = require('./source-resolver')
+const { sourceExtensionForKey } = require('./source-key-policy')
+const { validateExerciseId } = require('./processor-id')
+const { itemLabel, variantLabel, safeErrorLabel } = require('./processor-log')
 const { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
 const fs   = require('fs')
 const path = require('path')
 const os   = require('os')
 const RECOMMENDED_SOURCE_MAP = require('../config/recommended-source-map.json')
 const NEEDS_SOURCE_REVIEW = new Set(require('../config/unresolved-source-ids.json'))
-const R2_PUBLIC_BASE = 'https://r2.hidrasistemas.com.br'
 
 const {
                 R2_ACCOUNT_ID,
@@ -38,7 +44,7 @@ const {
 } = process.env
 
 if (!R2_ACCOUNT_ID || !PROCESSOR_API_KEY || !APP_URL) {
-                console.error('X Missing required env vars. Check repository secrets.')
+                console.error('X Missing required processor configuration.')
                 process.exit(1)
 }
 
@@ -103,33 +109,6 @@ async function markDone({ id, originalVideoKey, media, hlsProcessed = true, deri
                 }
 }
 
-function toObjectKey(value) {
-                if (typeof value !== 'string' || !value.trim()) return null
-                const raw = value.trim()
-                try {
-                                            const parsed = new URL(raw)
-                                            if (!['r2.hidrasistemas.com.br'].includes(parsed.hostname.toLowerCase())) return null
-                                            let key = decodeURIComponent(parsed.pathname.replace(/^\/+/, ''))
-                                            if (key.startsWith('api/videos/')) key = key.slice('api/videos/'.length)
-                                            return key || null
-                } catch {
-                                            let key = raw.split(/[?#]/, 1)[0].replace(/^\/+/, '')
-                                            if (key.startsWith('api/videos/')) key = key.slice('api/videos/'.length)
-                                            return key || null
-                }
-}
-
-function mediaSourceKeys(media) {
-                const keys = []
-                for (const gender of ['male', 'female']) {
-                                            const entry = media?.[gender]
-                                            if (!entry || typeof entry !== 'object') continue
-                                            const key = toObjectKey(entry.key) || toObjectKey(entry.url)
-                                            if (key) keys.push(key)
-                }
-                return [...new Set(keys)]
-}
-
 async function objectExists(key) {
                 try {
                                             await s3.send(new HeadObjectCommand({ Bucket: R2_BUCKET_NAME, Key: key }))
@@ -154,54 +133,12 @@ async function retainExistingMedia(media) {
                                                                                         normalized[gender] = {
                                                                                                                     ...entry,
                                                                                                                     key,
-                                                                                                                    url: `https://r2.hidrasistemas.com.br/${key}`,
+                                                                                                                    url: authenticatedVideoUrl(key),
                                                                                         }
                                             }
                                             else delete normalized[gender]
                 }
                 return normalized
-}
-
-async function resolveSources(exercise) {
-                const mappedSlug = RECOMMENDED_SOURCE_MAP[exercise.id]?.slug
-                const sources = []
-                const add = (key, gender, alreadyProcessed = false) => {
-                                            if (!sources.some((item) => item.key === key)) sources.push({ key, gender, alreadyProcessed })
-                }
-
-                if (mappedSlug) {
-                                            for (const gender of ['male', 'female']) {
-                                                                                        const key = `free-exercise/${mappedSlug}/${gender}/original.mp4`
-                                                                                        const folder = key.slice(0, key.lastIndexOf('/') + 1)
-                                                                                        if (await objectExists(key)) add(key, gender)
-                                                                                        else if (await objectExists(`${folder}hls/master.m3u8`)) add(key, gender, true)
-                                            }
-                }
-
-                // Preserve normal user uploads and any valid legacy source if this
-                // record is not in the recovery map.
-                if (!sources.length) {
-                                            const primary = toObjectKey(exercise.originalVideoKey)
-                                            if (primary && /\.mp4$/i.test(primary) && await objectExists(primary)) {
-                                                                                        const parts = primary.split('/')
-                                                                                        const gender = ['male', 'female'].includes(parts.at(-2)) ? parts.at(-2) : null
-                                                                                        add(primary, gender)
-                                            }
-                                            for (const gender of ['male', 'female']) {
-                                                                                        const entry = exercise.media?.[gender]
-                                                                                        if (!entry || typeof entry !== 'object') continue
-                                                                                        const key = toObjectKey(entry.key) || toObjectKey(entry.url)
-                                                                                        if (key && /\.mp4$/i.test(key) && await objectExists(key)) add(key, gender)
-                                            }
-                }
-
-                if (!sources.length) {
-                                            const checked = mappedSlug
-                                                                                        ? ['male', 'female'].map((g) => `free-exercise/${mappedSlug}/${g}/original.mp4`)
-                                                                                        : [toObjectKey(exercise.originalVideoKey), ...mediaSourceKeys(exercise.media)].filter(Boolean)
-                                            throw new Error(`No source object found in R2. Checked: ${checked.join(', ') || '(no valid keys)'}`)
-                }
-                return sources
 }
 
 // --- R2 helpers ---------------------------------------------------------------
@@ -215,11 +152,11 @@ async function downloadFromR2(key, destPath) {
                 })
 }
 
-async function uploadToR2(key, filePath, contentType) {
+async function uploadToR2(key, filePath, contentType, workspaceRoot) {
                 await s3.send(new PutObjectCommand({
                                             Bucket:      R2_BUCKET_NAME,
                                             Key:         key,
-                                            Body:        fs.readFileSync(filePath),
+                                            Body:        readRegularFile(workspaceRoot, filePath),
                                             ContentType: contentType,
                 }))
 }
@@ -264,23 +201,14 @@ function buildMasterPlaylist(variants) {
 // --- Detect original resolution -----------------------------------------------
 
 function probeHeight(mp4Path, tmpDir) {
-                try {
-                                            const out = executarFfprobe(
-                                                                                        ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'stream=height', '-of', 'csv=p=0', mp4Path],
-                                                    { cwd: tmpDir, encoding: 'utf8' }
-                                                                        ).trim()
-                                            const h = parseInt(out)
-                                            return Number.isFinite(h) && h > 0 ? h : 9999
-                } catch {
-                                            return 9999 // assume no cap if ffprobe fails
-                }
+                return readOriginalHeight(mp4Path, tmpDir, executarFfprobe)
 }
 
 // --- Core processor -----------------------------------------------------------
 async function processVariant(exercise, source, requestedHeights, variantIndex, variantCount) {
                 const folder = source.key.slice(0, source.key.lastIndexOf('/') + 1)
                 if (source.alreadyProcessed) {
-                                            console.log(`  check Reusing existing HLS for ${source.gender || 'primary'}: ${source.key}`)
+                                            console.log(`  check Reusing existing HLS for ${variantLabel(variantIndex, variantCount)}`)
                                             return await derivedFolderBytes(folder)
                 }
 
@@ -288,28 +216,29 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                 const thumbKey = `${folder}thumb.jpg`
                 const teaserKey = `${folder}teaser.mp4`
                 const hlsFolder = `${folder}hls/`
-                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), `processor-${id}-${source.gender || 'primary'}-`))
-                const mp4Path = path.join(tmpDir, 'input.mp4')
+                const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'processor-'))
+                const sourcePath = path.join(tmpDir, `input${sourceExtensionForKey(source.key) || '.mp4'}`)
                 const thumbPath = path.join(tmpDir, 'thumb.jpg')
                 const teaserPath = path.join(tmpDir, 'teaser.mp4')
                 const progress = (local) => updateProgress(id, Math.round(5 + (variantIndex + local / 85) * (85 / variantCount)))
 
                 try {
                                             await progress(0)
-                                            console.log(`  v  Downloading ${source.key}...`)
-                                            await downloadFromR2(source.key, mp4Path)
+                                            console.log(`  v  Downloading ${variantLabel(variantIndex, variantCount)}...`)
+                                            await downloadFromR2(source.key, sourcePath)
 
                                             await progress(5)
+                                            const originalHeight = probeHeight(sourcePath, tmpDir)
+                                            console.log(`  zoom Original resolution: ${originalHeight}p`)
+
                                             console.log(`  camera Generating thumbnail...`)
-                                            executarFfmpeg(['-y', '-i', mp4Path, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', thumbPath], { cwd: tmpDir, stdio: 'inherit' })
+                                            executarFfmpeg(['-y', '-i', sourcePath, '-ss', '00:00:01', '-frames:v', '1', '-update', '1', '-q:v', '2', thumbPath], { cwd: tmpDir, stdio: 'ignore' })
 
                                             await progress(15)
                                             console.log(`  movie Generating teaser (10s preview)...`)
-                                            executarFfmpeg(['-y', '-i', mp4Path, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', teaserPath], { cwd: tmpDir, stdio: 'inherit' })
+                                            executarFfmpeg(['-y', '-i', sourcePath, '-t', '10', '-vf', 'scale=720:-2', '-c:v', 'libx264', '-c:a', 'aac', '-preset', 'fast', '-crf', '28', '-movflags', '+faststart', teaserPath], { cwd: tmpDir, stdio: 'ignore' })
 
                                             await progress(23)
-                                            const originalHeight = probeHeight(mp4Path, tmpDir)
-                                            console.log(`  zoom Original resolution: ${originalHeight}p`)
                                             let targetHeights = requestedHeights.filter((height) => height <= originalHeight)
                                             if (targetHeights.length === 0) {
                                                                                         targetHeights = [Math.min(...requestedHeights)]
@@ -324,7 +253,7 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                                                                                         fs.mkdirSync(hlsDir, { recursive: true })
                                                                                         console.log(`  signal Generating HLS ${height}p...`)
                                                                                         executarFfmpeg([
-                                                                                                                    '-y', '-i', mp4Path,
+                                                                                                                    '-y', '-i', sourcePath,
                                                                                                                     '-profile:v', 'baseline', '-level', '3.0',
                                                                                                                     '-vf', `scale='min(${cfg.width},iw)':trunc(ow/a/2)*2`,
                                                                                                                     '-c:v', 'libx264', '-c:a', 'aac',
@@ -332,12 +261,12 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                                                                                                                     '-hls_time', '10', '-hls_playlist_type', 'vod',
                                                                                                                     '-hls_segment_filename', path.join(hlsDir, 'seg%03d.ts'),
                                                                                                                     path.join(hlsDir, 'playlist.m3u8'),
-                                                                                        ], { cwd: tmpDir, stdio: 'inherit' })
+                                                                                        ], { cwd: tmpDir, stdio: 'ignore' })
                                             }
 
                                             await progress(75)
-                                            if (fs.existsSync(thumbPath)) await uploadToR2(thumbKey, thumbPath, 'image/jpeg')
-                                            if (fs.existsSync(teaserPath)) await uploadToR2(teaserKey, teaserPath, 'video/mp4')
+                                            if (fs.existsSync(thumbPath)) await uploadToR2(thumbKey, thumbPath, 'image/jpeg', tmpDir)
+                                            if (fs.existsSync(teaserPath)) await uploadToR2(teaserKey, teaserPath, 'video/mp4', tmpDir)
 
                                             await progress(85)
                                             const variants = []
@@ -348,16 +277,16 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
                                                                                         const files = fs.readdirSync(dir)
                                                                                         for (const file of files) {
                                                                                                                     const contentType = file.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : 'video/MP2T'
-                                                                                                                    await uploadToR2(`${hlsFolder}${height}p/${file}`, path.join(dir, file), contentType)
+                                                                                                                    await uploadToR2(`${hlsFolder}${height}p/${file}`, path.join(dir, file), contentType, tmpDir)
                                                                                         }
                                                                                         variants.push({ bandwidth: cfg.bandwidth, resolution: `${cfg.width}x${height}`, path: `${height}p/playlist.m3u8` })
-                                                                                        console.log(`  cube HLS ${height}p -> ${hlsFolder}${height}p/ (${files.filter((file) => file.endsWith('.ts')).length} segments)`)
+                                                                                        console.log(`  cube HLS ${height}p generated (${files.filter((file) => file.endsWith('.ts')).length} segments)`)
                                             }
 
                                             const masterTmp = path.join(tmpDir, 'master.m3u8')
-                                            fs.writeFileSync(masterTmp, buildMasterPlaylist(variants))
-                                            await uploadToR2(`${hlsFolder}master.m3u8`, masterTmp, 'application/vnd.apple.mpegurl')
-                                            console.log(`  list Master playlist -> ${hlsFolder}master.m3u8`)
+                                            fs.writeFileSync(masterTmp, buildMasterPlaylist(variants), { flag: 'wx', mode: 0o600 })
+                                            await uploadToR2(`${hlsFolder}master.m3u8`, masterTmp, 'application/vnd.apple.mpegurl', tmpDir)
+                                            console.log('  list Master playlist generated')
                                             return (fs.existsSync(thumbPath) ? fs.statSync(thumbPath).size : 0)
                                                                                         + (fs.existsSync(teaserPath) ? fs.statSync(teaserPath).size : 0)
                                                                                         + localDerivedBytes(path.join(tmpDir, 'hls'))
@@ -367,10 +296,11 @@ async function processVariant(exercise, source, requestedHeights, variantIndex, 
 }
 
 async function processExercise(exercise) {
-                const { id, name, videoQualityHeights } = exercise
-                const sources = await resolveSources(exercise)
+                const id = validateExerciseId(exercise?.id)
+                const { videoQualityHeights } = exercise
+                const sources = await resolveSources(exercise, { objectExists, sourceMap: RECOMMENDED_SOURCE_MAP })
                 const mappedSlug = RECOMMENDED_SOURCE_MAP[id]?.slug
-                if (mappedSlug) console.log(`  info Recovered source mapping: ${mappedSlug}`)
+                if (mappedSlug) console.log('  info Recovered known source mapping')
 
                 const requestedHeights = Array.isArray(videoQualityHeights) && videoQualityHeights.length > 0
                                             ? videoQualityHeights.filter((height) => QUALITY_CONFIG[height])
@@ -393,8 +323,8 @@ async function processExercise(exercise) {
                                             nextMedia[source.gender] = {
                                                                                         ...(nextMedia[source.gender] || {}),
                                                                                         key: source.key,
-                                                                                        url: `${R2_PUBLIC_BASE}/${folder}hls/master.m3u8`,
-                                                                                        thumb: `${R2_PUBLIC_BASE}/${folder}thumb.jpg`,
+                                                                                        url: authenticatedVideoUrl(`${folder}hls/master.m3u8`),
+                                                                                        thumb: authenticatedVideoUrl(`${folder}thumb.jpg`),
                                             }
                 }
 
@@ -403,12 +333,12 @@ async function processExercise(exercise) {
                                             if (!source.alreadyProcessed) await markDone({ id, originalVideoKey: source.key, hlsProcessed: false, derivedBytes: derivedBytesBySource[i], sourceDeleted: false })
                                             if (!source.alreadyProcessed) {
                                                                                         await deleteFromR2(source.key)
-                                                                                        console.log(`  trash  Original MP4 deleted -> ${source.key}`)
+                                                                                        console.log('  trash  Original MP4 deleted')
                                             }
                                             await markDone({ id, originalVideoKey: source.key, hlsProcessed: false, derivedBytes: derivedBytesBySource[i], sourceDeleted: true })
                 }
                 await markDone({ id, originalVideoKey: primary.key, media: nextMedia })
-                console.log(`  check Done - "${name}" (${sources.length} video variant(s))`)
+                console.log(`  check Done - ${sources.length} video variant(s) processed`)
 }
 
 // --- Main ---------------------------------------------------------------------
@@ -417,7 +347,7 @@ async function main() {
                 const pending = await fetchPending()
                 const maxItems = Number(process.env.PROCESSOR_MAX_ITEMS || 200)
                 if (!Number.isInteger(maxItems) || maxItems < 1 || maxItems > 200) {
-                                            throw new Error(`PROCESSOR_MAX_ITEMS must be an integer from 1 to 200 (received: ${process.env.PROCESSOR_MAX_ITEMS})`)
+                                            throw new Error('PROCESSOR_MAX_ITEMS must be an integer from 1 to 200')
                 }
                 const needsReview = pending.filter((exercise) => NEEDS_SOURCE_REVIEW.has(exercise.id))
                 const queue = pending.filter((exercise) => !NEEDS_SOURCE_REVIEW.has(exercise.id))
@@ -434,16 +364,17 @@ async function main() {
 
     let ok = 0, fail = 0
 
-    for (const ex of batch) {
+    for (let index = 0; index < batch.length; index++) {
+                            const ex = batch[index]
                             const tierHeights = (Array.isArray(ex.videoQualityHeights) && ex.videoQualityHeights.length > 0)
                                             ? ex.videoQualityHeights.join('+')
                                                                     : heights
-                            console.log(`\nrefresh "${ex.name}" (${ex.id}) [tier: ${tierHeights}p]`)
+                            console.log(`\nrefresh ${itemLabel(index, batch.length)} [tier: ${tierHeights}p]`)
                             try {
                                                                     await processExercise(ex)
                                                                     ok++
                             } catch (err) {
-                                                                    console.error(`  X ${err.message}`)
+                                                                    console.error(`  X ${safeErrorLabel(err)}`)
                                                                     fail++
                             }
     }
@@ -453,4 +384,4 @@ async function main() {
                 if (fail > 0) process.exitCode = 1
 }
 
-main().catch(err => { console.error('Fatal:', err); process.exit(1) })
+main().catch(err => { console.error(`Fatal: ${safeErrorLabel(err)}`); process.exit(1) })
