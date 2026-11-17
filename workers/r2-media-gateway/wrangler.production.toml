@@ -15,4 +15,4 @@ binding = "MEDIA_BUCKET"
 bucket_name = "prd-trainlab"
 
 [vars]
-ALLOWED_ORIGINS = "https://trainlab.com.br"
+ALLOWED_ORIGINS = "https://trainlab.com.br,https://www.trainlab.com.br"
